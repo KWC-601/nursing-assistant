@@ -1,0 +1,2739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>訪問看護 記録入力アシスタント</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;
+  --accent:#0e7490;--accent-light:#e0f2fe;
+  --text:#1e293b;--text2:#64748b;
+  --green:#059669;--green-light:#d1fae5;
+  --orange:#d97706;--orange-light:#fef3c7;
+  --red:#dc2626;--red-light:#fee2e2;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;padding-bottom:64px}
+header{background:linear-gradient(135deg,#0c4a6e,#0e7490);color:#fff;padding:14px 24px;box-shadow:var(--shadow-lg)}
+header .logo{font-size:18px;font-weight:700}
+header .sub{font-size:11px;opacity:.7;margin-top:2px}
+.main{max-width:960px;margin:0 auto;padding:20px 16px}
+
+.steps{display:flex;align-items:center;background:var(--surface);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow);margin-bottom:24px;overflow-x:auto}
+.step{display:flex;align-items:center;gap:6px;flex:1;min-width:72px;padding:6px;border-radius:8px;cursor:pointer;transition:background .2s}
+.step:hover{background:var(--surface2)}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--border);color:var(--text2);flex-shrink:0;transition:all .2s}
+.step.active .step-num{background:var(--accent);color:#fff}
+.step.done .step-num{background:var(--green);color:#fff}
+.step-label{font-size:10px;color:var(--text2);line-height:1.3}
+.step.active .step-label{color:var(--accent);font-weight:600}
+.step.done .step-label{color:var(--green)}
+.step-arrow{color:var(--border);font-size:16px;padding:0 2px;flex-shrink:0}
+
+.card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
+.card-header .icon{width:30px;height:30px;border-radius:8px;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px}
+.card-header h2{font-size:14px;font-weight:600}
+.card-body{padding:20px}
+
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:'Noto Sans JP',sans-serif;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover:not(:disabled){background:#0c6280;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover:not(:disabled){background:#047857;transform:translateY(-1px)}
+.btn-outline{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn-outline:hover{background:var(--accent-light)}
+.btn-lg{padding:13px 24px;font-size:15px}
+.btn-full{width:100%;justify-content:center}
+
+.form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;background:var(--surface2);color:var(--text);transition:border .15s}
+.form-input:focus{outline:none;border-color:var(--accent);background:#fff}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;line-height:1.6}
+.alert-info{background:var(--accent-light);color:#0c4a6e;border:1px solid #bae6fd}
+.alert-success{background:var(--green-light);color:#064e3b;border:1px solid #a7f3d0}
+.alert-warn{background:var(--orange-light);color:#78350f;border:1px solid #fde68a}
+.alert-danger{background:var(--red-light);color:#7f1d1d;border:1px solid #fecaca}
+
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-blue{background:var(--accent-light);color:var(--accent)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-orange{background:var(--orange-light);color:var(--orange)}
+
+.page{display:none}.page.active{display:block}
+
+.confirm-card{border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;border:1.5px solid}
+.c-icon{font-size:28px;flex-shrink:0}
+.c-label{font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:4px}
+.c-value{font-size:20px;font-weight:700;transition:all .2s}
+.c-sub{font-size:11px;margin-top:2px}
+.c-check{font-size:24px;margin-left:auto;display:none;flex-shrink:0}
+
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:16px;margin-top:8px}
+.staff-btn{padding:10px 12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:500;text-align:center;transition:all .15s;color:var(--text)}
+.staff-btn:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.staff-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff}
+
+.check-list{display:flex;flex-direction:column;gap:8px}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s}
+.check-item:hover{border-color:var(--accent);background:var(--accent-light)}
+.check-item input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--red);flex-shrink:0;margin-top:1px}
+.check-item.checked{border-color:var(--green);background:var(--green-light)}
+.check-item span{font-size:13px;line-height:1.5}
+
+.vital-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+.vital-item label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.vital-item input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:15px;font-family:'DM Mono',monospace;background:var(--surface2);transition:all .15s}
+.vital-item input:focus{outline:none;border-color:var(--accent);background:#fff}
+.vital-item input.has-value{border-color:var(--green);background:#f0fdf4}
+.vital-item input.overwrite{border-color:var(--orange)!important;background:var(--orange-light)!important}
+
+.soap-label{font-size:12px;font-weight:700;display:block;margin-bottom:4px}
+.soap-s{color:#0e7490}.soap-o{color:#059669}.soap-a{color:#d97706}.soap-p{color:#dc2626}
+textarea.form-input{min-height:70px;resize:vertical;line-height:1.6}
+textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-light)!important}
+
+.care-group{margin-bottom:12px}
+.care-group-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.care-checks{display:flex;flex-wrap:wrap;gap:6px}
+.care-checks label{display:flex;align-items:center;gap:4px;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s}
+.care-checks label:hover{border-color:var(--accent)}
+.care-checks input:checked+span{color:var(--accent);font-weight:600}
+
+.section-hd{background:linear-gradient(90deg,var(--accent-light),transparent);padding:7px 14px;font-size:12px;font-weight:700;color:var(--accent);border-left:3px solid var(--accent);margin:16px 0 8px;letter-spacing:.5px}
+
+.preview-table{width:100%;border-collapse:collapse}
+.preview-table th{background:var(--surface2);padding:9px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--text2);border-bottom:2px solid var(--border)}
+.preview-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
+.preview-table tr:last-child td{border-bottom:none}
+.preview-table tr:hover td{background:var(--surface2)}
+.td-label{font-weight:500;color:var(--text2);white-space:nowrap;width:130px}
+.td-overwrite{background:var(--orange-light)!important}
+
+.loading{display:flex;align-items:center;gap:10px;padding:14px;color:var(--text2);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.admin-tab{background:transparent;border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:var(--text2);transition:all .15s}
+.admin-tab-active{background:#fff;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+@keyframes pulse-bar{0%,100%{opacity:1}50%{opacity:.6}}
+.notice-analyzing{background:linear-gradient(90deg,#0c4a6e,#0e7490);color:#fff;animation:none}
+.notice-warn{background:#fef3c7;border:2px solid #f59e0b;color:#92400e}
+.notice-ok{background:#d1fae5;border:2px solid #059669;color:#065f46}
+.notice-error{background:#fee2e2;border:2px solid #dc2626;color:#7f1d1d}
+.progress-dots span{display:inline-block;animation:pulse-bar 1.2s ease-in-out infinite}
+.progress-dots span:nth-child(2){animation-delay:.2s}
+.progress-dots span:nth-child(3){animation-delay:.4s}
+
+.transfer-hero{background:linear-gradient(135deg,#0c4a6e,#0e7490);border-radius:12px;padding:24px;color:#fff;text-align:center;box-shadow:var(--shadow-lg);margin-bottom:20px}
+.transfer-hero h3{font-size:16px;margin-bottom:8px}
+.transfer-hero p{font-size:12px;opacity:.8;margin-bottom:16px;line-height:1.6}
+
+.name-match-box{background:var(--orange-light);border:1.5px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:16px}
+.name-chip{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--text);transition:all .15s;display:inline-flex;align-items:center}
+.name-chip:hover{border-color:var(--orange);background:var(--orange-light)}
+.name-chip.selected-name{background:var(--green);color:#fff;border-color:var(--green)}
+
+.summary-box{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center}
+.summary-box .s-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:4px}
+.summary-box .s-value{font-size:14px;font-weight:700}
+
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-light)}
+
+.row-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+
+.status-bar{background:var(--surface);border-top:1px solid var(--border);padding:9px 24px;font-size:12px;color:var(--text2);position:fixed;bottom:0;left:0;right:0;display:flex;align-items:center;gap:8px;z-index:100}
+
+@media(max-width:600px){
+  .vital-grid{grid-template-columns:repeat(2,1fr)}
+  .summary-box{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header style="display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div class="logo">🏥 訪問看護 記録入力アシスタント</div>
+    <div class="sub">氏名・日付はAPIに送らず安全転記 ｜ 音声 → SOAP整理 → カイポケ自動転記</div>
+  </div>
+  <button onclick="openAdminLogin()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+    ⚙️ 管理者設定
+  </button>
+</header>
+
+<!-- ========== 管理者ログインモーダル ========== -->
+<div id="adminLoginModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:32px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;text-align:center">⚙️ 管理者ログイン</div>
+    <div style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:20px">管理者IDとパスワードを入力してください</div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">管理者ID</label>
+      <input type="text" id="adminLoginId" class="form-input" placeholder="KWC" style="font-family:'DM Mono',monospace">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">パスワード</label>
+      <input type="password" id="adminLoginPw" class="form-input" placeholder="••••" style="font-family:'DM Mono',monospace" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div id="adminLoginErr" style="display:none;background:#fee2e2;color:#7f1d1d;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px">IDまたはパスワードが違います</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeAdminLogin()" class="btn btn-outline" style="flex:1">キャンセル</button>
+      <button onclick="adminLogin()" class="btn btn-primary" style="flex:1">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 管理者設定パネル（モーダル） ========== -->
+<div id="adminPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;overflow-y:auto">
+  <div style="max-width:680px;margin:40px auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden">
+
+    <!-- パネルヘッダー -->
+    <div style="background:linear-gradient(135deg,#1e3a5f,#0e7490);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700">⚙️ 管理者設定</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px">設定はブラウザに保存されます</div>
+      </div>
+      <button onclick="closeAdminPanel()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit">✕ 閉じる</button>
+    </div>
+
+    <div style="padding:24px;display:flex;flex-direction:column;gap:20px">
+
+      <!-- タブ -->
+      <div style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px">
+        <button onclick="switchAdminTab('api')" id="tab_api" class="admin-tab admin-tab-active" style="flex:1">🔑 APIキー</button>
+        <button onclick="switchAdminTab('staff')" id="tab_staff" class="admin-tab" style="flex:1">👤 記載者</button>
+        <button onclick="switchAdminTab('users')" id="tab_users" class="admin-tab" style="flex:1">🏥 利用者</button>
+        <button onclick="switchAdminTab('pw')" id="tab_pw" class="admin-tab" style="flex:1">🔐 パスワード</button>
+      </div>
+
+      <!-- APIキータブ -->
+      <div id="adminTab_api">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">APIキーを保存しておくと、毎回入力不要になります</div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">OpenAI APIキー（Whisper用）</label>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="admin_openai_key" class="form-input" placeholder="sk-proj-..." style="font-family:'DM Mono',monospace">
+            <button onclick="toggleAdminKey('admin_openai_key')" class="btn btn-outline" style="white-space:nowrap">表示</button>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Claude APIキー（SOAP生成用）</label>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="admin_claude_key" class="form-input" placeholder="sk-ant-..." style="font-family:'DM Mono',monospace">
+            <button onclick="toggleAdminKey('admin_claude_key')" class="btn btn-outline" style="white-space:nowrap">表示</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="saveApiKeySettings()" class="btn btn-primary" style="flex:1">💾 保存</button>
+          <button onclick="clearApiKeySettings()" class="btn btn-outline" style="color:var(--red);border-color:var(--red)">🗑 削除</button>
+        </div>
+        <div id="apiSaveMsg" style="display:none;margin-top:10px;background:var(--green-light);color:#065f46;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600">✅ 保存しました</div>
+      </div>
+
+      <!-- 記載者タブ -->
+      <div id="adminTab_staff" style="display:none">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">記載者（スタッフ）リスト</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">1行に1名ずつ入力してください</div>
+        <textarea id="admin_staff_list" class="form-input" rows="10" style="font-family:'Noto Sans JP',sans-serif;line-height:2"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button onclick="saveStaffSettings()" class="btn btn-primary" style="flex:1">💾 保存・反映</button>
+          <button onclick="resetStaffSettings()" class="btn btn-outline">リセット</button>
+        </div>
+        <div id="staffSaveMsg" style="display:none;margin-top:10px;background:var(--green-light);color:#065f46;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600">✅ 保存・反映しました</div>
+      </div>
+
+      <!-- 利用者タブ -->
+      <div id="adminTab_users" style="display:none">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">利用者リスト</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">1行に1名ずつ入力してください（入力欄の候補に表示されます）</div>
+        <textarea id="admin_user_list" class="form-input" rows="10" style="font-family:'Noto Sans JP',sans-serif;line-height:2"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button onclick="saveUserSettings()" class="btn btn-primary" style="flex:1">💾 保存・反映</button>
+          <button onclick="resetUserSettings()" class="btn btn-outline">クリア</button>
+        </div>
+        <div id="userSaveMsg" style="display:none;margin-top:10px;background:var(--green-light);color:#065f46;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600">✅ 保存・反映しました</div>
+      </div>
+
+      <!-- パスワード変更タブ -->
+      <div id="adminTab_pw" style="display:none">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">管理者ID・パスワードの変更</div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">新しい管理者ID</label>
+          <input type="text" id="admin_new_id" class="form-input" placeholder="新しいID" style="font-family:'DM Mono',monospace">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">新しいパスワード</label>
+          <input type="password" id="admin_new_pw" class="form-input" placeholder="新しいパスワード" style="font-family:'DM Mono',monospace">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">新しいパスワード（確認）</label>
+          <input type="password" id="admin_new_pw2" class="form-input" placeholder="もう一度入力" style="font-family:'DM Mono',monospace">
+        </div>
+        <button onclick="changeAdminPassword()" class="btn btn-primary btn-full">🔐 変更を保存</button>
+        <div id="pwSaveMsg" style="display:none;margin-top:10px;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="main">
+
+<!-- ステップバー -->
+<div class="steps">
+  <div class="step active" id="step0" onclick="tryGoStep(0)">
+    <div class="step-num">✓</div><div class="step-label">対象者<br>確認</div>
+  </div>
+  <div class="step-arrow">›</div>
+  <div class="step" id="step1" onclick="tryGoStep(1)">
+    <div class="step-num">1</div><div class="step-label">音声<br>入力</div>
+  </div>
+  <div class="step-arrow">›</div>
+  <div class="step" id="step2" onclick="tryGoStep(2)">
+    <div class="step-num">2</div><div class="step-label">解析<br>中</div>
+  </div>
+  <div class="step-arrow">›</div>
+  <div class="step" id="step3" onclick="tryGoStep(3)">
+    <div class="step-num">3</div><div class="step-label">内容<br>確認</div>
+  </div>
+  <div class="step-arrow">›</div>
+  <div class="step" id="step4" onclick="tryGoStep(4)">
+    <div class="step-num">4</div><div class="step-label">転記<br>確認</div>
+  </div>
+</div>
+
+<!-- ========== グローバル通知バー（ステップ下） ========== -->
+<div id="globalNoticeBar" style="display:none;margin-bottom:16px;border-radius:10px;padding:12px 18px;display:none;align-items:center;gap:12px;font-size:13px;font-weight:600;transition:all .3s"></div>
+
+<!-- ========== PAGE 0: 対象者確認 ========== -->
+<div class="page active" id="page0">
+
+  <!-- ========== カイポケ連携カード ========== -->
+  <div class="card" style="border:2px solid var(--accent);margin-bottom:16px">
+    <div class="card-header" onclick="toggleKaipokeSection()" style="cursor:pointer;user-select:none;background:linear-gradient(90deg,var(--accent-light),#fff)">
+      <div class="icon">🔗</div>
+      <h2>カイポケ連携 — 現在値を自動取得</h2>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <span id="kaipokeStatusBadge" class="badge badge-blue">未取得</span>
+        <span id="kaipokeToggleIcon" style="font-size:12px;color:var(--text2)">▼ 開く</span>
+      </div>
+    </div>
+    <div id="kaipokeSection" style="display:none">
+      <div class="card-body" style="padding:16px 20px">
+
+        <!-- 3ステップガイド -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+
+          <!-- STEP 1 -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">🔖 STEP 1 — ブックマークレットを保存（初回のみ・更新時も）</div>
+            <!-- 方法A：ドラッグ -->
+            <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px">方法A — ドラッグ（簡単）</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:8px">下のボタンをブックマークバーへドラッグ。既存のものがあれば上書きしてください。</div>
+            <div style="margin-bottom:14px">
+              <a id="bookmarkletAnchor" href="" ondragstart="fixBookmarkletHref()"
+                style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0c4a6e,var(--accent));color:#fff;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none;cursor:grab;box-shadow:var(--shadow)">
+                🔗 カイポケ連携ツール ← ここをドラッグ
+              </a>
+            </div>
+            <!-- 方法B：手動 -->
+            <div style="font-size:12px;font-weight:700;color:var(--text1);margin-bottom:4px">方法B — 手動登録（ドラッグできない場合）</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.9;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:8px">
+              ① 「📋 コードをコピー」を押す<br>
+              ② ブックマークバーの<strong>空白を右クリック</strong> →「ページを追加」<br>
+              ③ 名前：カイポケ連携ツール　／　URL欄を<strong>全選択して貼り付け（Ctrl+V）</strong><br>
+              ④ 保存　※既存のものは先に削除してから登録
+            </div>
+            <button onclick="copyBookmarkletCode()" class="btn btn-outline" style="font-size:12px;padding:7px 14px">📋 コードをコピー</button>
+            <div id="bookmarkletCopied" style="display:none;margin-top:8px;font-size:12px;color:var(--green);font-weight:700;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:7px 11px">
+              ✅ コピーしました！　ブックマークバーを右クリック →「ページを追加」→ URLに貼り付けて保存
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">🏥 STEP 2 — カイポケで対象利用者の記録ページを開く</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+              カイポケにログインし、入力対象の<strong>利用者の訪問看護記録ページ</strong>を開いてください。<br>
+              そのページで保存したブックマークレットをクリックします。<br>
+              <span style="color:var(--orange);font-weight:600">⚠️ ログインしていない場合や記録ページ以外では動作しません</span>
+            </div>
+            <button onclick="openKaipoke()" class="btn btn-outline" style="font-size:12px;padding:7px 14px">🏥 カイポケを新しいタブで開く</button>
+          </div>
+
+          <!-- STEP 3 -->
+          <div style="background:var(--accent-light);border:2px solid var(--accent);border-radius:10px;padding:13px 16px">
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">⬇️ STEP 3 — このページで「カイポケから取得」を押す</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px">ブックマークレット実行後、このページに戻りボタンを押してください。</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="fetchFromKaipoke()" class="btn btn-primary" style="font-size:13px;padding:10px 20px">🔗 カイポケから取得</button>
+              <button onclick="fetchFromKaipoke()" class="btn btn-outline" style="font-size:12px;padding:9px 16px">🔄 再取得</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 取得結果 -->
+        <div id="kaipokeResult" style="display:none;background:var(--green-light);border:1.5px solid #a7f3d0;border-radius:10px;padding:13px 16px">
+          <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:10px">✅ カイポケから取得成功</div>
+          <div id="kaipokeResultBody" style="font-size:12px;color:var(--text);line-height:2;display:flex;flex-wrap:wrap;gap:6px"></div>
+          <div style="font-size:11px;color:#065f46;margin-top:8px;opacity:.8" id="kaipokeResultMeta"></div>
+        </div>
+        <div id="kaipokeError" style="display:none;background:var(--red-light);border:1.5px solid #fecaca;border-radius:10px;padding:13px 16px">
+          <div style="font-size:13px;font-weight:700;color:#7f1d1d;margin-bottom:6px">❌ 取得失敗</div>
+          <div id="kaipokeErrorMsg" style="font-size:12px;color:#7f1d1d;line-height:1.7"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border:2.5px solid var(--red)">
+    <div class="card-header" style="background:linear-gradient(90deg,#fee2e2,#fff);border-bottom:1px solid #fecaca">
+      <div class="icon" style="background:#fee2e2;color:var(--red)">⚠️</div>
+      <h2 style="color:var(--red);font-size:15px">【最重要】記録者・利用者・日付の確認</h2>
+      <span class="badge badge-red" style="margin-left:auto">入力前に必ず確認</span>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-danger">
+        <span>🚨</span>
+        <span><strong>誤った利用者への入力は重大な医療事故につながります。</strong><br>以下3項目を確認し、すべてにチェックしてから先へ進んでください。</span>
+      </div>
+
+      <!-- ① 記録者選択 -->
+      <div class="confirm-card" style="background:#eff6ff;border-color:#bfdbfe">
+        <div class="c-icon">👤</div>
+        <div style="flex:1">
+          <div class="c-label" style="color:#1e40af">① 記録者 — 今日訪問したのは誰ですか？（複数可・最大3名）</div>
+          <div id="confirm_login" class="c-value" style="color:#94a3b8;font-size:14px">↓ 下のボタンから選択してください（複数可・最大3名）</div>
+          <div class="c-sub" style="color:#3b82f6">クロノス一宮 訪問看護</div>
+        </div>
+        <div class="c-check" id="check_login">✅</div>
+      </div>
+      <div class="staff-grid" id="staffGrid"></div>
+
+      <!-- ② 利用者名 -->
+      <div class="confirm-card" style="background:#f0fdf4;border-color:#bbf7d0">
+        <div class="c-icon">🏥</div>
+        <div style="flex:1">
+          <div class="c-label" style="color:#166534">② 入力対象の利用者</div>
+          <div id="confirm_user" class="c-value" style="color:#94a3b8;font-size:14px">← 下のフォームに入力してください</div>
+          <div class="c-sub" style="color:#16a34a">カイポケで選択した利用者と一致していますか？</div>
+        </div>
+        <div class="c-check" id="check_user">✅</div>
+      </div>
+      <div class="form-group">
+        <input type="text" id="input_user" class="form-input" placeholder="例：安田 勝美" oninput="updateConfirm()">
+      </div>
+
+      <!-- ③ 訪問日時 -->
+      <div class="confirm-card" style="background:#faf5ff;border-color:#e9d5ff">
+        <div class="c-icon">📅</div>
+        <div style="flex:1">
+          <div class="c-label" style="color:#6b21a8">③ 訪問日時</div>
+          <div id="confirm_date" class="c-value" style="color:#94a3b8;font-size:14px">← 下のフォームに入力してください</div>
+          <div class="c-sub" style="color:#7c3aed">音声録音・手書きメモの日付と一致していますか？</div>
+        </div>
+        <div class="c-check" id="check_date">✅</div>
+      </div>
+      <div class="form-group">
+        <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="input_date_cal" class="form-input" onchange="updateDateCombo()">
+          <select id="input_time_h_start" class="form-input" style="width:72px;padding:10px 6px" onchange="updateDateCombo()">
+            <option value="">時</option>
+          </select>
+          <select id="input_time_m_start" class="form-input" style="width:72px;padding:10px 6px" onchange="updateDateCombo()">
+            <option value="">分</option>
+          </select>
+          <span style="font-size:13px;color:var(--text2);white-space:nowrap">〜</span>
+          <div style="display:grid;grid-template-columns:auto auto;gap:8px">
+            <select id="input_time_h_end" class="form-input" style="width:72px;padding:10px 6px" onchange="updateDateCombo()">
+              <option value="">時</option>
+            </select>
+            <select id="input_time_m_end" class="form-input" style="width:72px;padding:10px 6px" onchange="updateDateCombo()">
+              <option value="">分</option>
+            </select>
+          </div>
+        </div>
+        <input type="hidden" id="input_date">
+      </div>
+
+      <!-- チェックリスト -->
+      <div style="border:2px solid var(--red);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:12px">✋ 以下3項目すべてにチェックを入れてください</div>
+        <div class="check-list">
+          <label class="check-item" id="lbl_chk1">
+            <input type="checkbox" id="chk1" onchange="onCheck(this,'lbl_chk1');checkProceedReady()">
+            <span>選択した<strong>記録者名</strong>は自分本人である</span>
+          </label>
+          <label class="check-item" id="lbl_chk2">
+            <input type="checkbox" id="chk2" onchange="onCheck(this,'lbl_chk2');checkProceedReady()">
+            <span>入力した<strong>利用者名</strong>はカイポケで選択した利用者と完全に一致している</span>
+          </label>
+          <label class="check-item" id="lbl_chk3">
+            <input type="checkbox" id="chk3" onchange="onCheck(this,'lbl_chk3');checkProceedReady()">
+            <span>入力した<strong>訪問日時</strong>は今回の音声録音・手書きメモと一致している</span>
+          </label>
+        </div>
+      </div>
+
+      <button id="proceedBtn" class="btn btn-full btn-lg" onclick="tryGoStep(1)" disabled
+        style="background:#94a3b8;color:#fff;cursor:not-allowed;opacity:.5;font-size:15px;padding:16px">
+        🔒 3項目すべて確認してから次へ進めます
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 1: 入力方法選択 ========== -->
+<div class="page" id="page1">
+
+  <!-- 個人情報保護バナー -->
+  <div style="background:linear-gradient(135deg,#1e3a5f,#0e7490);border-radius:12px;padding:16px 20px;margin-bottom:18px;color:#fff;box-shadow:var(--shadow-lg)">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔒 音声・テキストに含めないこと（個人情報保護）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:rgba(220,38,38,0.25);border:1px solid rgba(220,38,38,0.5);border-radius:8px;padding:10px">
+        <div style="font-size:11px;font-weight:700;color:#fca5a5;margin-bottom:4px">❌ 含めないもの</div>
+        <div style="font-size:12px;line-height:1.8;color:#fecaca">利用者氏名・住所・訪問日時<br>記録者名・事業所名</div>
+      </div>
+      <div style="background:rgba(5,150,105,0.25);border:1px solid rgba(5,150,105,0.5);border-radius:8px;padding:10px">
+        <div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:4px">✅ 含めてよいもの</div>
+        <div style="font-size:12px;line-height:1.8;color:#a7f3d0">バイタル数値・症状・ケア内容<br>観察・アセスメント・処置内容</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 入力方法選択画面 ===== -->
+  <div id="modeSelectSection">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700;color:var(--text)">入力方法を選択してください</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">どちらの方法でも Claude API（有料）でSOAPを自動生成します</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px">
+
+      <!-- 音声入力カード -->
+      <div onclick="selectInputMode('voice')"
+        style="cursor:pointer;background:var(--surface);border:2.5px solid var(--accent);border-radius:14px;padding:28px 20px;text-align:center;transition:all .2s;box-shadow:var(--shadow)"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:48px;margin-bottom:12px">🎤</div>
+        <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px">音声入力</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+          録音したm4aファイルをアップロード<br>
+          Whisper APIが自動で文字起こし<br>
+          → ClaudeがSOAPに変換
+        </div>
+        <div style="background:var(--accent-light);border-radius:8px;padding:8px;font-size:11px;color:var(--accent);font-weight:600">
+          OpenAI API + Claude API 使用
+        </div>
+      </div>
+
+      <!-- 手動入力カード -->
+      <div onclick="selectInputMode('manual')"
+        style="cursor:pointer;background:var(--surface);border:2.5px solid var(--green);border-radius:14px;padding:28px 20px;text-align:center;transition:all .2s;box-shadow:var(--shadow)"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:48px;margin-bottom:12px">✏️</div>
+        <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:8px">手動入力</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+          Googleドキュメント等で文字起こし済みの<br>
+          テキストを貼り付け<br>
+          → ClaudeがSOAPに変換
+        </div>
+        <div style="background:var(--green-light);border-radius:8px;padding:8px;font-size:11px;color:var(--green);font-weight:600">
+          Claude API のみ使用
+        </div>
+      </div>
+
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:8px">
+      🔑 APIキーは右上の「⚙️ 管理者設定」から登録できます
+    </div>
+  </div>
+
+  <!-- ===== 音声入力セクション ===== -->
+  <div id="voiceInputSection" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button onclick="backToModeSelect()" class="btn btn-outline" style="padding:7px 14px;font-size:12px">← 選び直す</button>
+      <div style="font-size:15px;font-weight:700;color:var(--accent)">🎤 音声入力</div>
+    </div>
+
+    <!-- APIキーステータス（管理者設定から自動反映） -->
+    <div id="voiceApiStatus" style="margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px"></div>
+    <!-- 非表示APIキーフィールド（JS用） -->
+    <div style="display:none">
+      <input type="password" id="openaiKey">
+      <input type="password" id="apiKey">
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="icon">🎵</div><h2>音声ファイルをアップロード</h2></div>
+      <div class="card-body">
+        <div style="background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#78350f;line-height:1.8">
+          🎙️ バイタル・症状・ケア内容のみ話してください。<strong>氏名・日付・担当者名は言わない</strong>でください。
+        </div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size:36px;margin-bottom:10px">🎵</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px">クリックして音声ファイルを選択</div>
+          <p style="color:var(--text2);font-size:12px;margin-top:4px">またはここにドラッグ＆ドロップ</p>
+          <p style="color:var(--text2);font-size:12px;margin-top:4px">対応形式: m4a / mp3 / wav / webm / ogg</p>
+        </div>
+        <input type="file" id="fileInput" accept="audio/*" onchange="onFileSelect(this)" style="display:none">
+        <div id="fileInfo" style="display:none;margin-top:12px">
+          <div class="alert alert-success"><span>✅</span><span id="fileName"></span></div>
+          <button class="btn btn-primary btn-lg btn-full" onclick="analyzeAudio()">🔍 文字起こし・解析を開始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 手動入力セクション ===== -->
+  <div id="manualInputSection" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button onclick="backToModeSelect()" class="btn btn-outline" style="padding:7px 14px;font-size:12px">← 選び直す</button>
+      <div style="font-size:15px;font-weight:700;color:var(--green)">✏️ 手動入力</div>
+    </div>
+
+    <!-- APIキーステータス（管理者設定から自動反映） -->
+    <div id="manualApiStatus" style="margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px"></div>
+    <!-- 非表示APIキーフィールド（JS用） -->
+    <div style="display:none">
+      <input type="password" id="apiKeyManual">
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="icon">✏️</div><h2>文字起こしテキストを貼り付け</h2></div>
+      <div class="card-body">
+        <div style="background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#78350f;line-height:1.8">
+          ✏️ Googleドキュメント等で文字起こしたテキストを貼り付けてください。<br>
+          <strong>氏名・訪問日・担当者名・事業所名は除いて</strong>入力してください。
+        </div>
+        <textarea id="directText" class="form-input" rows="8"
+          placeholder="【入力例 — 氏名・日付・担当者名は含めない】&#10;&#10;体温36.7、血圧130/63、脈拍70、SpO2 98&#10;「親に会いたい、家に帰りたい」と訴えあり。終始視線は下向き。&#10;慣れない環境下で帰宅願望あり。服薬確認済み。"></textarea>
+        <div style="margin-top:12px">
+          <button class="btn btn-primary btn-lg btn-full" onclick="analyzeText()">🔍 SOAP解析を開始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden dummy elements for compatibility -->
+  <div style="display:none">
+    <input type="text" id="c_temp"><input type="text" id="c_bp_h"><input type="text" id="c_bp_l">
+    <input type="text" id="c_pulse"><input type="text" id="c_spo2"><input type="text" id="c_resp">
+    <textarea id="c_s"></textarea><textarea id="c_o"></textarea><textarea id="c_a"></textarea><textarea id="c_p"></textarea>
+    <textarea id="chatText"></textarea><div id="chatPromptArea"></div><div id="chatPromptBox"></div>
+    <div id="apiSection"></div>
+  </div>
+
+</div><!-- ========== /PAGE 1 END ========== -->
+
+<!-- ========== PAGE 2: 解析中 ========== -->
+<div class="page" id="page2">
+  <div class="card">
+    <div class="card-header"><div class="icon">⚙️</div><h2>解析中...</h2></div>
+    <div class="card-body"><div id="progressLog" style="display:flex;flex-direction:column;gap:12px"></div></div>
+  </div>
+</div>
+
+<!-- ========== PAGE 3: 内容確認・修正 ========== -->
+<div class="page" id="page3">
+
+  <!-- 名前確認 -->
+  <div id="nameMatchBox" style="display:none">
+    <div class="name-match-box">
+      <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px">⚠️ 音声から認識された名前を確認してください</div>
+      <p style="font-size:12px;color:var(--orange);margin-bottom:10px">音声認識では名前が誤変換されることがあります。正しい名前をクリックして選択してください。</p>
+      <div id="nameMatchContent"></div>
+    </div>
+  </div>
+
+  <!-- 文字起こし（折りたたみ） -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header" onclick="toggleTranscript()" style="cursor:pointer;user-select:none">
+      <div class="icon">📝</div><h2>文字起こし結果</h2>
+      <span id="transcriptToggleIcon" style="margin-left:auto;font-size:12px;color:var(--text2)">▼ 表示</span>
+    </div>
+    <div id="transcriptPanel" style="display:none;padding:14px 20px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">✏️ 内容を直接編集できます。修正後に「再解析」ボタンを押すとバイタル・SOAPを再生成します。</div>
+      <textarea id="transcriptBox" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;line-height:1.8;min-height:120px;max-height:260px;resize:vertical;font-family:'Noto Sans JP',sans-serif;color:var(--text1)"></textarea>
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+        <button onclick="reanalyzeTranscript()" class="btn btn-primary" style="padding:10px 22px;font-size:14px;font-weight:700">
+          🔄 この内容で再解析
+        </button>
+        <span id="reanalyzeStatus" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- カイポケ転記一覧（メインテーブル） -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon">📋</div><h2>カイポケ転記一覧</h2>
+    </div>
+
+    <!-- 上書きサマリーバナー（中央） -->
+    <div id="overwriteSummary" style="display:none;margin:14px 16px;border-radius:10px;overflow:hidden;border:2px solid var(--orange)">
+      <div style="background:#fef3c7;padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #fbbf24">
+        <span style="font-size:20px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#92400e">以下の項目がカイポケの既存データを上書きします</div>
+          <div style="font-size:11px;color:#b45309;margin-top:2px">転記する値を必ず確認・修正してから次へ進んでください</div>
+        </div>
+      </div>
+      <div id="overwriteSummaryList" style="background:#fffbeb;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+
+    <!-- 新規追加サマリーバナー -->
+    <div id="newItemSummary" style="display:none;margin:0 16px 14px;border-radius:10px;overflow:hidden;border:2px solid var(--green)">
+      <div style="background:var(--green-light);padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">✅</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#065f46">新規追加される項目</div>
+          <div id="newItemSummaryList" style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body" style="padding:0">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
+            <th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--text2);width:14%">項目</th>
+            <th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--text2);width:25%">カイポケ現在値</th>
+            <th style="padding:10px 4px;text-align:center;font-weight:700;color:var(--accent);width:6%;font-size:16px">→</th>
+            <th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--text);width:39%">転記する値（編集可）</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:600;color:var(--text2);width:16%">状態</th>
+          </tr>
+        </thead>
+        <tbody id="transferTableBody">
+
+          <!-- ===== バイタル行 ===== -->
+          <tr class="transfer-row" id="tr_temp" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🌡️ 体温</td>
+            <td id="ex_temp" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_temp" class="form-input" placeholder="例: 36.5" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_temp','v_temp','ex_temp','℃')"><span style="font-size:12px;color:var(--text2)">℃</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_temp"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_bp" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🩺 血圧</td>
+            <td id="ex_bp" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:4px">
+              <input type="text" id="v_bp_high" class="form-input" placeholder="高" style="padding:7px 8px;font-family:'DM Mono',monospace;width:65px" oninput="markVital(this);updateBpStatus()">
+              <span style="color:var(--text2);font-weight:700">/</span>
+              <input type="text" id="v_bp_low" class="form-input" placeholder="低" style="padding:7px 8px;font-family:'DM Mono',monospace;width:65px" oninput="markVital(this);updateBpStatus()">
+              <span style="font-size:12px;color:var(--text2)">mmHg</span>
+            </div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_bp"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_pulse" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">💓 脈拍</td>
+            <td id="ex_pulse" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_pulse" class="form-input" placeholder="例: 70" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_pulse','v_pulse','ex_pulse','回/分')"><span style="font-size:12px;color:var(--text2)">回/分</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_pulse"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_spo2" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🫁 SpO2</td>
+            <td id="ex_spo2" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_spo2" class="form-input" placeholder="例: 98" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_spo2','v_spo2','ex_spo2','%')"><span style="font-size:12px;color:var(--text2)">%</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_spo2"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_resp" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🌬️ 呼吸</td>
+            <td id="ex_resp" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_resp" class="form-input" placeholder="例: 16" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_resp','v_resp','ex_resp','回/分')"><span style="font-size:12px;color:var(--text2)">回/分</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_resp"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_weight" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">⚖️ 体重</td>
+            <td id="ex_weight" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_weight" class="form-input" placeholder="例: 52.3" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_weight','v_weight','ex_weight','kg')"><span style="font-size:12px;color:var(--text2)">kg</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_weight"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_bs" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🩸 血糖値</td>
+            <td id="ex_bs" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_blood_sugar" class="form-input" placeholder="例: 120" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_bs','v_blood_sugar','ex_bs','mg/dL')"><span style="font-size:12px;color:var(--text2)">mg/dL</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_bs"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_irreg" style="border-bottom:2px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">❤️ 不整脈</td>
+            <td id="ex_irreg" style="padding:10px 12px;color:var(--text2);font-size:13px;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><select id="v_irregular" class="form-input" style="padding:7px 10px;max-width:120px" onchange="updateRowStatus('tr_irreg','v_irregular','ex_irreg','')"><option value="">---</option><option value="0">無</option><option value="1">有</option></select></td>
+            <td style="padding:10px 12px;text-align:center" id="st_irreg"></td>
+          </tr>
+
+          <!-- ===== 排泄・食事観察行 ===== -->
+          <tr style="background:var(--surface2)">
+            <td colspan="5" style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--text2)">💧 排泄・食事観察</td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_urine" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🚽 排尿回数</td>
+            <td id="ex_urine" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_urine" class="form-input" placeholder="例: 5" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_urine','v_urine','ex_urine','回')"><span style="font-size:12px;color:var(--text2)">回</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_urine"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_defecation" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🚾 排便回数</td>
+            <td id="ex_defecation" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_defecation" class="form-input" placeholder="例: 1" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_defecation','v_defecation','ex_defecation','回')"><span style="font-size:12px;color:var(--text2)">回</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_defecation"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_fluid" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">💧 水分摂取量</td>
+            <td id="ex_fluid" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:6px"><input type="text" id="v_fluid" class="form-input" placeholder="例: 800" style="padding:7px 10px;font-family:'DM Mono',monospace;max-width:120px" oninput="markVital(this);updateRowStatus('tr_fluid','v_fluid','ex_fluid','ml')"><span style="font-size:12px;color:var(--text2)">ml</span></div></td>
+            <td style="padding:10px 12px;text-align:center" id="st_fluid"></td>
+          </tr>
+
+          <tr class="transfer-row" id="tr_meal" style="border-bottom:2px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px">🍽️ 食事量</td>
+            <td id="ex_meal" style="padding:10px 12px;color:var(--text2);font-size:13px;font-family:'DM Mono',monospace;font-weight:600"></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700">→</td>
+            <td style="padding:6px 12px"><input type="text" id="v_meal" class="form-input" placeholder="例: 全量・5割・ゼロ" style="padding:7px 10px;max-width:200px" oninput="markVital(this);updateRowStatus('tr_meal','v_meal','ex_meal','')"></td>
+            <td style="padding:10px 12px;text-align:center" id="st_meal"></td>
+          </tr>
+
+          <!-- ===== SOAP行 ===== -->
+          <tr style="background:var(--surface2)">
+            <td colspan="5" style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--text2)">📒 観察記録（SOAP）</td>
+          </tr>
+
+          <tr class="transfer-row" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px;vertical-align:top"><span class="soap-label soap-s" style="font-size:11px">S</span><br><span style="font-size:10px;color:var(--text2)">主観的情報</span></td>
+            <td style="padding:10px 12px;color:var(--text2);font-size:11px;vertical-align:top;line-height:1.6" rowspan="4">
+              <div id="ex_soap_content" style="max-height:200px;overflow-y:auto;white-space:pre-wrap;background:var(--surface2);border-radius:6px;padding:8px;border:1px solid var(--border)"></div>
+            </td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700;vertical-align:top">→</td>
+            <td style="padding:6px 12px"><textarea id="soap_s" class="form-input" rows="2" placeholder="患者・家族の言葉" oninput="updateSoapStatus()"></textarea></td>
+            <td style="padding:10px 12px;text-align:center;vertical-align:top" id="st_soap" rowspan="4"></td>
+          </tr>
+          <tr class="transfer-row" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px;vertical-align:top"><span class="soap-label soap-o" style="font-size:11px">O</span><br><span style="font-size:10px;color:var(--text2)">客観的情報</span></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700;vertical-align:top">→</td>
+            <td style="padding:6px 12px"><textarea id="soap_o" class="form-input" rows="2" placeholder="観察・測定事実" oninput="updateSoapStatus()"></textarea></td>
+          </tr>
+          <tr class="transfer-row" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px;vertical-align:top"><span class="soap-label soap-a" style="font-size:11px">A</span><br><span style="font-size:10px;color:var(--text2)">アセスメント</span></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700;vertical-align:top">→</td>
+            <td style="padding:6px 12px"><textarea id="soap_a" class="form-input" rows="2" placeholder="評価・判断" oninput="updateSoapStatus()"></textarea></td>
+          </tr>
+          <tr class="transfer-row" style="border-bottom:1px solid var(--border)">
+            <td class="td-label" style="padding:10px 12px;vertical-align:top"><span class="soap-label soap-p" style="font-size:11px">P</span><br><span style="font-size:10px;color:var(--text2)">プラン</span></td>
+            <td style="padding:10px 4px;text-align:center;color:var(--accent);font-size:18px;font-weight:700;vertical-align:top">→</td>
+            <td style="padding:6px 12px"><textarea id="soap_p" class="form-input" rows="2" placeholder="今後の計画" oninput="updateSoapStatus()"></textarea></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ケア項目 -->
+  <div class="card">
+    <div class="card-header"><div class="icon">🧹</div><h2>実施したケア項目</h2></div>
+    <div class="card-body"><div id="careGroupsContainer"></div></div>
+  </div>
+
+  <div class="row-actions">
+    <button class="btn btn-outline" onclick="tryGoStep(1)">← やり直す</button>
+    <button class="btn btn-success btn-lg" onclick="tryGoStep(4)">✅ 転記確認へ進む →</button>
+  </div>
+
+  <!-- 上書き警告（非表示：JS制御用） -->
+  <div id="overwriteWarning" style="display:none"></div>
+</div>
+
+<!-- ========== PAGE 4: 転記最終確認 ========== -->
+<div class="page" id="page4">
+
+  <div id="overwriteWarning2" style="display:none">
+    <div class="alert alert-warn" style="font-size:14px">
+      <span style="font-size:20px">⚠️</span>
+      <div><strong>上書きされる項目があります</strong><br>
+      <span style="font-size:12px">下表のオレンジ行は既存データへの上書きです。内容をご確認のうえ転記してください。</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="icon">📊</div><h2>転記内容 最終確認</h2><span class="badge badge-orange" style="margin-left:auto">転記前に必ず確認</span></div>
+    <div class="card-body">
+
+      <!-- 対象者サマリー -->
+      <div class="summary-box">
+        <div>
+          <div class="s-label">👤 記録者</div>
+          <div id="summary_login" class="s-value" style="color:#1e3a8a"></div>
+        </div>
+        <div style="border-left:1px solid var(--border)">
+          <div class="s-label">🏥 利用者</div>
+          <div id="summary_user" class="s-value" style="color:#14532d"></div>
+        </div>
+        <div style="border-left:1px solid var(--border)">
+          <div class="s-label">📅 訪問日時</div>
+          <div id="summary_date" class="s-value" style="color:#581c87"></div>
+        </div>
+      </div>
+
+      <div id="previewTable"></div>
+
+      <!-- 転記前最終チェック -->
+      <div style="border:2px solid var(--red);border-radius:10px;padding:14px;margin-top:16px">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px">✋ 転記前 最終チェック</div>
+        <div class="check-list">
+          <label class="check-item" id="lbl_fchk1">
+            <input type="checkbox" id="fchk1" onchange="onCheck(this,'lbl_fchk1');checkTransferReady()">
+            <span>カイポケ画面の<strong>利用者名</strong>「<span id="fchk_username" style="font-weight:700;color:var(--green)"></span>」と一致している</span>
+          </label>
+          <label class="check-item" id="lbl_fchk2">
+            <input type="checkbox" id="fchk2" onchange="onCheck(this,'lbl_fchk2');checkTransferReady()">
+            <span>カイポケ画面の<strong>訪問日時</strong>「<span id="fchk_date" style="font-weight:700;color:var(--green)"></span>」と一致している</span>
+          </label>
+          <label class="check-item" id="lbl_fchk3">
+            <input type="checkbox" id="fchk3" onchange="onCheck(this,'lbl_fchk3');checkTransferReady()">
+            <span>上書きされる項目がある場合、既存データを<strong>確認済み</strong>である（上書きなし場合もチェック）</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 転記手順カード -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-header" style="background:linear-gradient(90deg,#0c4a6e,#0e7490);color:#fff">
+      <div class="icon" style="background:rgba(255,255,255,.2);color:#fff">🚀</div>
+      <h2 style="color:#fff">カイポケへの転記手順</h2>
+    </div>
+    <div class="card-body" style="padding:16px 20px">
+
+      <!-- ブックマークレット案内（初回のみ） -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">🔖 転記用ブックマークレット（初回のみ保存）</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+          下のリンクをブックマークバーへドラッグしてください。カイポケ側でこのブックマークレットを実行すると、クリップボードのデータが自動入力されます。
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <a id="writeBookmarkletAnchor" href="" ondragstart="fixWriteBookmarkletHref()" onclick="return false;"
+            style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#047857,var(--green));color:#fff;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;text-decoration:none;cursor:grab;box-shadow:var(--shadow)">
+            📋 カイポケ転記ツール ← ドラッグしてブックマークバーへ
+          </a>
+          <button onclick="copyWriteBookmarkletCode()" class="btn btn-outline" style="font-size:12px;padding:7px 14px">📋 コードをコピー</button>
+        </div>
+        <div id="writeBookmarkletCopied" style="display:none;margin-top:8px;font-size:12px;color:var(--green);font-weight:600">✅ コピーしました！ブックマーク新規作成 → URLに貼り付け</div>
+      </div>
+
+      <!-- 転記実行 -->
+      <div style="background:var(--accent-light);border:2px solid var(--accent);border-radius:10px;padding:13px 16px">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px">転記の流れ</div>
+        <ol style="font-size:12px;color:var(--text);line-height:2.2;padding-left:18px;margin-bottom:12px">
+          <li>下の「<strong>転記データをコピー</strong>」ボタンを押す（クリップボードに保存されます）</li>
+          <li>カイポケで対象利用者の<strong>訪問看護記録ページ</strong>を開く</li>
+          <li>保存した「<strong>📋 カイポケ転記ツール</strong>」ブックマークレットをクリック</li>
+          <li>カイポケの各フィールドに自動入力される → 内容確認後「<strong>保存する</strong>」を押す</li>
+        </ol>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button id="transferBtn" class="btn btn-lg" onclick="doTransfer()" disabled
+            style="background:#94a3b8;color:#fff;opacity:.4;cursor:not-allowed;font-size:14px">
+            🔒 転記チェックを完了してから実行できます
+          </button>
+          <button onclick="openKaipoke()" class="btn btn-outline" style="font-size:12px;padding:9px 16px">🏥 カイポケを開く</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="transferResult"></div>
+  <div class="row-actions" style="justify-content:flex-start">
+    <button class="btn btn-outline" onclick="tryGoStep(3)">← 内容確認に戻る</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="status-bar">
+  <span id="statusDot" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>
+  <span id="statusText">記録者・利用者・日付を確認してください</span>
+</div>
+
+<script>
+// ===== チャット経由モード =====
+function toggleApiSection() {
+  const sec = document.getElementById('apiSection');
+  const icon = document.getElementById('apiToggleIcon');
+  const isOpen = sec.style.display !== 'none';
+  sec.style.display = isOpen ? 'none' : 'block';
+  icon.textContent = isOpen ? '▼ 開く' : '▲ 閉じる';
+}
+
+function updateChatPrompt() {
+  const text = document.getElementById('chatText').value.trim();
+  const area = document.getElementById('chatPromptArea');
+  const box = document.getElementById('chatPromptBox');
+  if (!text) { area.style.display = 'none'; return; }
+  area.style.display = 'block';
+  document.getElementById('copyDone').style.display = 'none';
+  const prompt = `以下は訪問看護の記録メモです（氏名・日付・担当者名は含まれていません）。
+バイタル数値を抽出し、SOAP形式で整理してください。
+
+---
+${text}
+---
+
+以下の形式で回答してください：
+
+【バイタル】
+体温：
+血圧（高/低）：/
+脈拍：
+SpO2：
+呼吸：
+体重：
+血糖値：
+
+【SOAP】
+S（患者・家族の訴え）：
+O（客観的観察事実）：
+A（アセスメント）：
+P（プラン）：`;
+  box.textContent = prompt;
+}
+
+function copyPrompt() {
+  const text = document.getElementById('chatPromptBox').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('copyDone').style.display = 'flex';
+  });
+}
+
+function applyChatResult() {
+  // チャット欄の手動入力値をメイン確認画面に転送
+  const map = [
+    ['c_temp','v_temp'],['c_bp_h','v_bp_high'],['c_bp_l','v_bp_low'],
+    ['c_pulse','v_pulse'],['c_spo2','v_spo2'],['c_resp','v_resp']
+  ];
+  map.forEach(([src,dst]) => {
+    const v = document.getElementById(src).value.trim();
+    const el = document.getElementById(dst);
+    if (el) { el.value = v; el.classList.toggle('has-value', !!v); }
+  });
+  document.getElementById('soap_s').value = document.getElementById('c_s').value;
+  document.getElementById('soap_o').value = document.getElementById('c_o').value;
+  document.getElementById('soap_a').value = document.getElementById('c_a').value;
+  document.getElementById('soap_p').value = document.getElementById('c_p').value;
+  document.getElementById('transcriptBox').value = document.getElementById('chatText').value;
+  // 上書きチェック
+  hasOverwrite = false;
+  const owPairs = [
+    ['v_temp', EXISTING.temperature1],['v_bp_high', EXISTING.pressureHigh1],
+    ['v_bp_low', EXISTING.pressureLow1],['v_pulse', EXISTING.pulse1],['v_spo2', EXISTING.spo21]
+  ];
+  owPairs.forEach(([id, ex]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('overwrite');
+    if (el.value && ex && el.value !== ex) { el.classList.add('overwrite'); hasOverwrite = true; }
+  });
+  const soapNow = buildSoapStr(
+    document.getElementById('soap_s').value,
+    document.getElementById('soap_o').value,
+    document.getElementById('soap_a').value,
+    document.getElementById('soap_p').value
+  );
+  if (soapNow && EXISTING.observationRecord) hasOverwrite = true;
+  document.getElementById('overwriteWarning').style.display = hasOverwrite ? 'block' : 'none';
+  setStatus('チャット結果を反映しました');
+  tryGoStep(3);
+}
+
+
+const STAFF_LIST = ['浅野 ひとみ','川地 ゆかり','福田 全崇','宮部 博之','山田 明樹','山田 未来','山田 祐月','山本 恵'];
+const CARE_GROUPS = {
+  '清拭・入浴・整容':['清拭（全身）','清拭（部分）','全身浴','部分浴','シャワー浴','洗髪','整容','洗顔','口腔ケア','義歯洗浄','更衣介助'],
+  '排泄介助':['トイレ介助','Pトイレ介助','おむつ交換'],
+  '食事介助':['全介助','一部介助','水分補給','見守り'],
+  '服薬介助':['服薬確認','服薬促し','点眼','湿布・軟膏','座薬','服薬セッティング'],
+  '医療の実施':['酸素管理','創傷処置','吸引','吸入','褥瘡処置','経管栄養','血糖測定','注射・点滴','浣腸','摘便'],
+  '管理・指導':['栄養管理指導','褥瘡予防指導','服薬管理指導','家族相談支援'],
+  '精神科':['生活リズムの確立','家事能力・社会技能の獲得','対人関係の改善','社会資源活用の支援','薬物療法継続への援助','身体合併症の防止']
+};
+// カイポケから取得した既存データ（ブックマークレットで更新される）
+let EXISTING = {
+  temperature1:'', pressureHigh1:'', pressureLow1:'',
+  pulse1:'', spo21:'', breathing1:'', weight1:'', bloodSugarLevel1:'',
+  urineCount:'', defecationCount:'', fluidIntake:'', mealAmount:'',
+  observationRecord:''
+};
+
+// ===== 状態 =====
+let audioFile = null, selectedStaffs = [], hasOverwrite = false, confirmedNames = {};
+
+// ===== 初期化 =====
+document.addEventListener('DOMContentLoaded', () => {
+  // 職員ボタン
+  const grid = document.getElementById('staffGrid');
+  STAFF_LIST.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'staff-btn';
+    btn.textContent = name;
+    btn.onclick = () => selectStaff(name);
+    grid.appendChild(btn);
+  });
+  // ケアグループ
+  const container = document.getElementById('careGroupsContainer');
+  Object.entries(CARE_GROUPS).forEach(([grp, items]) => {
+    const div = document.createElement('div');
+    div.className = 'care-group';
+    div.innerHTML = `<div class="care-group-label">${grp}</div><div class="care-checks" id="cg_${grp}"></div>`;
+    container.appendChild(div);
+    const el = div.querySelector(`[id="cg_${grp}"]`);
+    items.forEach(item => {
+      const lbl = document.createElement('label');
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.dataset.item=item;
+      const sp = document.createElement('span'); sp.textContent = item;
+      lbl.appendChild(cb); lbl.appendChild(sp); el.appendChild(lbl);
+    });
+  });
+  // ドラッグ&ドロップ
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+
+  // 日時プルダウン初期化
+  const hStart = document.getElementById('input_time_h_start');
+  const mStart = document.getElementById('input_time_m_start');
+  const hEnd   = document.getElementById('input_time_h_end');
+  const mEnd   = document.getElementById('input_time_m_end');
+  for (let h = 6; h <= 22; h++) {
+    const v = String(h).padStart(2,'0');
+    [hStart, hEnd].forEach(sel => { const o = document.createElement('option'); o.value = v; o.textContent = v+'時'; sel.appendChild(o); });
+  }
+  ['00','10','15','20','30','40','45','50'].forEach(m => {
+    [mStart, mEnd].forEach(sel => { const o = document.createElement('option'); o.value = m; o.textContent = m+'分'; sel.appendChild(o); });
+  });
+  // 今日の日付をデフォルトにセット
+  const today = new Date();
+  document.getElementById('input_date_cal').value = today.toISOString().slice(0,10);
+  updateDateCombo();
+  // 既存値をテーブルに初期表示
+  initExistingValues();
+  // ブックマークレットリンクを初期化（読み取り用・書き込み用）
+  initBookmarkletLink();
+  fixWriteBookmarkletHref();
+  // 保存済みAPIキーを自動反映
+  applyStoredApiKeys();
+  // 保存済みスタッフリストを反映
+  const savedStaff = localStorage.getItem('staff_list');
+  if (savedStaff) rebuildStaffGrid(JSON.parse(savedStaff));
+  // 保存済み利用者リストを反映
+  const savedUsers = localStorage.getItem('user_list');
+  if (savedUsers) applyUserList(JSON.parse(savedUsers));
+});
+
+// ===== 記録者選択（複数可・最大3名） =====
+function selectStaff(name) {
+  const idx = selectedStaffs.indexOf(name);
+  if (idx >= 0) {
+    selectedStaffs.splice(idx, 1); // すでに選択中 → 解除
+  } else {
+    if (selectedStaffs.length >= 3) return; // 3名超はスキップ
+    selectedStaffs.push(name);
+  }
+  document.querySelectorAll('.staff-btn').forEach(b =>
+    b.classList.toggle('selected', selectedStaffs.includes(b.textContent.trim()))
+  );
+  const el = document.getElementById('confirm_login');
+  if (selectedStaffs.length) {
+    el.textContent = selectedStaffs.join('・');
+    el.style.color = '#1e3a8a';
+    el.style.fontSize = selectedStaffs.length > 1 ? '15px' : '20px';
+    document.getElementById('check_login').style.display = 'block';
+  } else {
+    el.textContent = '↓ 下のボタンから選択してください（複数可・最大3名）';
+    el.style.color = '#94a3b8'; el.style.fontSize = '14px';
+    document.getElementById('check_login').style.display = 'none';
+  }
+  checkProceedReady();
+}
+
+// ===== 日時コンボ更新 =====
+function updateDateCombo() {
+  const cal  = document.getElementById('input_date_cal').value;
+  const hS   = document.getElementById('input_time_h_start').value;
+  const mS   = document.getElementById('input_time_m_start').value;
+  const hE   = document.getElementById('input_time_h_end').value;
+  const mE   = document.getElementById('input_time_m_end').value;
+
+  let dateStr = '';
+  if (cal) {
+    /* new Date('YYYY-MM-DD') はUTC基準で解釈されタイムゾーンズレが起きるため
+       文字列を直接分解して月日を取得する */
+    const parts = cal.split('-');
+    if (parts.length === 3) {
+      dateStr = `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+    }
+  }
+  let timeStr = '';
+  if (hS && mS) timeStr = ` ${hS}:${mS}`;
+  if (hE && mE) timeStr += `〜${hE}:${mE}`;
+
+  const combined = dateStr + timeStr;
+  document.getElementById('input_date').value = combined;
+  updateConfirm();
+}
+
+// ===== 確認更新 =====
+function updateConfirm() {
+  const user = document.getElementById('input_user').value.trim();
+  const date = document.getElementById('input_date').value.trim();
+  const uEl = document.getElementById('confirm_user');
+  uEl.textContent = user || '← 下のフォームに入力してください';
+  uEl.style.color = user ? '#14532d' : '#94a3b8';
+  uEl.style.fontSize = user ? '20px' : '14px';
+  document.getElementById('check_user').style.display = user ? 'block' : 'none';
+  const dEl = document.getElementById('confirm_date');
+  dEl.textContent = date || '← カレンダーと時刻を選択してください';
+  dEl.style.color = date ? '#581c87' : '#94a3b8';
+  dEl.style.fontSize = date ? '20px' : '14px';
+  document.getElementById('check_date').style.display = date ? 'block' : 'none';
+  checkProceedReady();
+}
+
+function onCheck(cb, lblId) { document.getElementById(lblId).classList.toggle('checked', cb.checked); }
+
+function checkProceedReady() {
+  const ok = ['chk1','chk2','chk3'].every(id => document.getElementById(id).checked)
+    && document.getElementById('input_user').value.trim()
+    && document.getElementById('input_date').value.trim()
+    && selectedStaffs.length > 0;
+  const btn = document.getElementById('proceedBtn');
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.5';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  btn.style.background = ok ? 'var(--accent)' : '#94a3b8';
+  btn.textContent = ok ? '✅ 確認完了 — 音声入力へ進む →' : '🔒 3項目すべて確認してから次へ進めます';
+}
+
+// ===== ステップ移動 =====
+function tryGoStep(n) {
+  if (n > 0) {
+    const ok = ['chk1','chk2','chk3'].every(id => document.getElementById(id).checked)
+      && document.getElementById('input_user').value.trim()
+      && document.getElementById('input_date').value.trim()
+      && selectedStaffs.length > 0;
+    if (!ok) { setStatus('❌ 対象者確認を完了してください','red'); goStep(0); return; }
+  }
+  goStep(n);
+}
+function goStep(n) {
+  if (n === 4) buildPreview();
+  for (let i = 0; i <= 4; i++) {
+    const pg = document.getElementById('page'+i); if (pg) pg.classList.toggle('active', i===n);
+    const st = document.getElementById('step'+i); if (!st) continue;
+    st.classList.remove('active','done');
+    if (i===n) st.classList.add('active'); else if (i<n) st.classList.add('done');
+  }
+  // ステップ2以降はAPIセクションを非表示
+  const apiSec = document.getElementById('apiSection');
+  if (apiSec) apiSec.style.display = n >= 2 ? 'none' : apiSec.style.display;
+  // ステップ0・1では通知バーを非表示
+  if (n <= 1) hideNotice();
+  window.scrollTo(0,0);
+}
+
+// ===== ファイル =====
+function onFileSelect(input) { if (input.files[0]) setFile(input.files[0]); }
+function setFile(f) {
+  audioFile = f;
+  document.getElementById('fileName').textContent = `${f.name}（${(f.size/1024/1024).toFixed(1)} MB）`;
+  document.getElementById('fileInfo').style.display = 'block';
+  setStatus(`ファイル選択済み: ${f.name}`);
+}
+function toggleKey() { const i = document.getElementById('apiKey'); i.type = i.type==='password'?'text':'password'; }
+function toggleOpenaiKey() { const i = document.getElementById('openaiKey'); i.type = i.type==='password'?'text':'password'; }
+function toggleKeyManual() { const i = document.getElementById('apiKeyManual'); i.type = i.type==='password'?'text':'password'; }
+
+// ===== 入力方法選択 =====
+function selectInputMode(mode) {
+  document.getElementById('modeSelectSection').style.display = 'none';
+  document.getElementById('voiceInputSection').style.display = mode === 'voice' ? 'block' : 'none';
+  document.getElementById('manualInputSection').style.display = mode === 'manual' ? 'block' : 'none';
+
+  // APIキーステータス表示
+  const openaiKey = localStorage.getItem('saved_openai_key') || '';
+  const claudeKey = localStorage.getItem('saved_claude_key') || '';
+
+  if (mode === 'voice') {
+    const bar = document.getElementById('voiceApiStatus');
+    if (!bar) return;
+    if (openaiKey && claudeKey) {
+      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
+      bar.innerHTML = '<span style="font-size:18px">✅</span><div><div style="font-weight:700">APIキー設定済み</div><div style="font-weight:400;opacity:.8;margin-top:2px">OpenAI（Whisper用）・Claude（SOAP用）どちらも登録されています</div></div>';
+    } else if (!openaiKey && !claudeKey) {
+      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
+      bar.innerHTML = '<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">APIキー未設定</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから OpenAI・Claude のキーを登録してください</div></div>';
+    } else {
+      const missing = !openaiKey ? 'OpenAI（Whisper用）' : 'Claude（SOAP用）';
+      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--orange-light);border:1px solid #fde68a;color:#78350f';
+      bar.innerHTML = `<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">${missing} のAPIキーが未設定です</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから登録してください</div></div>`;
+    }
+  } else if (mode === 'manual') {
+    const bar = document.getElementById('manualApiStatus');
+    if (!bar) return;
+    if (claudeKey) {
+      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
+      bar.innerHTML = '<span style="font-size:18px">✅</span><div><div style="font-weight:700">APIキー設定済み</div><div style="font-weight:400;opacity:.8;margin-top:2px">Claude APIキー（SOAP生成用）が登録されています</div></div>';
+    } else {
+      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
+      bar.innerHTML = '<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">Claude APIキー未設定</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから登録してください</div></div>';
+    }
+  }
+}
+function backToModeSelect() {
+  document.getElementById('modeSelectSection').style.display = 'block';
+  document.getElementById('voiceInputSection').style.display = 'none';
+  document.getElementById('manualInputSection').style.display = 'none';
+}
+
+// ===== ステータス =====
+function setStatus(msg, color='green') {
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('statusDot').style.background = {red:'var(--red)',orange:'var(--orange)'}[color]||'var(--green)';
+}
+function addLog(msg, done=false) {
+  const d = document.createElement('div'); d.className='loading';
+  d.innerHTML = done ? `<span style="color:var(--green);font-size:16px">✅</span><span>${msg}</span>` : `<div class="spinner"></div><span>${msg}</span>`;
+  document.getElementById('progressLog').appendChild(d);
+}
+
+// ===== 解析プロンプト =====
+function buildPrompt() {
+  return `訪問看護の記録内容を解析してJSON形式で返してください（JSONのみ、コードブロック不要）。
+
+【重要】このテキスト・音声には利用者氏名・訪問日・記録者名・事業所名は含まれていません。
+これらの個人識別情報は別途管理されており、本解析対象外です。
+テキスト中に万が一氏名・日付・担当者名のような記載があっても、返すJSONには含めないでください。
+
+{
+  "transcript": "文字起こし全文（氏名・日付・担当者名があれば除去して返す）",
+  "vitals": {
+    "temperature": "体温の数値のみ",
+    "bp_high": "血圧上の数値のみ",
+    "bp_low": "血圧下の数値のみ",
+    "pulse": "脈拍の数値のみ",
+    "spo2": "SpO2の数値のみ",
+    "respiration": "呼吸数の数値のみ",
+    "weight": "体重の数値のみ",
+    "blood_sugar": "血糖値の数値のみ",
+    "irregular_pulse": "不整脈 0=なし 1=あり 空=不明"
+  },
+  "soap": {
+    "S": "患者・家族の訴えや言葉を1〜2文で簡潔に。「〇〇とのこと」「〇〇と話される」など短くまとめる。氏名は含めない。情報がなければ空文字",
+    "O": "看護師が観察・確認した事実のみを、句読点を使った文章形式で2〜3文以内に簡潔にまとめる（箇条書き・改行不可。バイタル数値は除く。「〇〇を確認した。〇〇の状態であった」のように短い文をつなぐ）。氏名は含めない",
+    "A": "1文で簡潔に。「〇〇は安定している」「〇〇に注意が必要」など端的に",
+    "P": "1〜2文で簡潔に。「引き続き〇〇を継続」「次回〇〇を確認」など端的に。特記なければ空文字"
+  },
+  "mentioned_names": ["テキスト中に登場した人名をすべてリスト（誤変換の可能性があるものも含む）"],
+  "care_items": ["実施したケア項目の配列"],
+  "observations": {
+    "urine_count": "排尿回数（数値のみ。例: 5）",
+    "defecation_count": "排便回数（数値のみ。例: 1）",
+    "fluid_intake": "水分摂取量（mlの数値のみ。例: 800）",
+    "meal_amount": "食事量・摂取割合（例: 全量, 5割, ゼロ, 半量）"
+  }
+}`;
+}
+
+// ===== 音声解析 =====
+function getAudioMimeType(file) {
+  // ファイル名の拡張子からMIMEタイプを確実に判定
+  const name = (file.name||'').toLowerCase();
+  if (name.endsWith('.m4a')) return 'audio/mp4';
+  if (name.endsWith('.mp3')) return 'audio/mpeg';
+  if (name.endsWith('.wav')) return 'audio/wav';
+  if (name.endsWith('.webm')) return 'audio/webm';
+  if (name.endsWith('.ogg')) return 'audio/ogg';
+  if (name.endsWith('.aac')) return 'audio/aac';
+  if (name.endsWith('.flac')) return 'audio/flac';
+  // fileのtypeが有効なら使う
+  const t = file.type||'';
+  if (t && t.startsWith('audio/')) return t === 'audio/x-m4a' ? 'audio/mp4' : t;
+  return 'audio/mpeg';
+}
+
+function showAnalysisError(msg) {
+  addLog('❌ ' + msg, true);
+  const errDiv = document.createElement('div');
+  errDiv.style.cssText = 'background:#fee2e2;border:2px solid #dc2626;border-radius:10px;padding:16px;margin-top:12px;font-size:13px;color:#7f1d1d;line-height:1.8';
+  errDiv.innerHTML = `<strong style="font-size:15px">⛔ エラーが発生しました</strong><br><br>
+    <code style="background:#fecaca;padding:4px 8px;border-radius:4px;font-size:12px;word-break:break-all">${msg}</code>
+    <br><br><strong>よくある原因：</strong><br>
+    ・<strong>APIキーが間違っている</strong>（sk-ant-api03- で始まるか確認）<br>
+    ・<strong>クレジット残高ゼロ</strong>（console.anthropic.com → Billing で確認）<br>
+    ・<strong>モデル名が無効</strong>（APIキーの権限を確認）<br>
+    ・<strong>ネットワークエラー</strong>（インターネット接続を確認）<br><br>
+    <button onclick="goStep(1)" style="padding:10px 20px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">← STEP 1 に戻る</button>`;
+  document.getElementById('progressLog').appendChild(errDiv);
+}
+
+async function analyzeAudio() {
+  const openaiKey = document.getElementById('openaiKey').value.trim();
+  const claudeKey = document.getElementById('apiKey').value.trim();
+  if (!openaiKey) { alert('OpenAI APIキーを入力してください（音声文字起こし用）'); return; }
+  if (!claudeKey) { alert('Claude APIキーを入力してください（SOAP生成用）'); return; }
+  if (!audioFile) { alert('音声ファイルを選択してください'); return; }
+
+  goStep(2); document.getElementById('progressLog').innerHTML = '';
+
+  // ===== STEP 1: Whisper API で文字起こし =====
+  addLog(`🎙️ Whisper APIで文字起こし中...（${audioFile.name} / ${(audioFile.size/1024).toFixed(0)}KB）`);
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🎙️ 音声を文字起こし中<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">${audioFile.name}（${(audioFile.size/1024).toFixed(0)}KB）をWhisper APIに送信中</span></div>`);
+  let transcript = '';
+  try {
+    const formData = new FormData();
+    formData.append('file', audioFile, audioFile.name);
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'ja');
+
+    const whisperController = new AbortController();
+    const whisperTimeout = setTimeout(() => whisperController.abort(), 120000);
+
+    const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      signal: whisperController.signal,
+      headers: { 'Authorization': `Bearer ${openaiKey}` },
+      body: formData
+    });
+    clearTimeout(whisperTimeout);
+
+    const whisperData = await whisperRes.json();
+    if (!whisperRes.ok || whisperData.error) {
+      throw new Error(whisperData.error?.message || `Whisper APIエラー ${whisperRes.status}`);
+    }
+    transcript = whisperData.text || '';
+    addLog(`✅ 文字起こし完了：「${transcript.slice(0,60)}${transcript.length>60?'…':''}」`);
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（120秒）：音声ファイルが大きすぎます' : e.message;
+    showAnalysisError('【Whisper API】 ' + msg);
+    return;
+  }
+
+  // ===== STEP 2: Claude API で SOAP 生成 =====
+  addLog('🤖 Claude APIでSOAP形式に変換中...');
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🤖 SOAP形式に変換中<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude APIがSOAP記録を生成しています。しばらくお待ちください</span></div>`);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claudeKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        messages: [{role: 'user', content:
+          `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`
+        }]
+      })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
+    addLog('✅ SOAP生成完了！', true);
+    parseAndFill(data.content.map(c => c.text||'').join(''), transcript);
+  } catch(e) {
+    clearTimeout && clearTimeout();
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
+    showAnalysisError('【Claude API】 ' + msg);
+  }
+}
+
+// ===== テキスト解析 =====
+async function analyzeText() {
+  const apiKey = document.getElementById('apiKeyManual').value.trim() || document.getElementById('apiKey').value.trim();
+  const text = document.getElementById('directText').value.trim();
+  if (!apiKey) { alert('Claude APIキーが設定されていません。右上の「⚙️ 管理者設定」からAPIキーを登録してください。'); return; }
+  if (!text) { alert('テキストを入力してください'); return; }
+  goStep(2); document.getElementById('progressLog').innerHTML = '';
+  addLog('🤖 Claude APIでSOAP形式に変換中...');
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🤖 SOAP形式に変換中<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude APIがSOAP記録を生成しています。しばらくお待ちください</span></div>`);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        messages: [{role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
+      })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error((data.error?.message)||`HTTPエラー ${res.status}`);
+    addLog('✅ SOAP生成完了！', true);
+    parseAndFill(data.content.map(c=>c.text||'').join(''), text);
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
+    showAnalysisError('【Claude API】 ' + msg);
+  }
+}
+
+// ===== 文字起こし再解析 =====
+async function reanalyzeTranscript() {
+  const apiKey = document.getElementById('apiKeyManual')?.value.trim() || document.getElementById('apiKey').value.trim();
+  const text = document.getElementById('transcriptBox').value.trim();
+  const statusEl = document.getElementById('reanalyzeStatus');
+  if (!apiKey) { alert('Claude APIキーが設定されていません。右上の「⚙️ 管理者設定」からAPIキーを登録してください。'); return; }
+  if (!text) { alert('文字起こしテキストが空です。'); return; }
+
+  statusEl.textContent = '🔄 解析中...';
+  statusEl.style.color = 'var(--accent)';
+  const btn = document.querySelector('[onclick="reanalyzeTranscript()"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        messages: [{role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
+      })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error((data.error?.message) || `HTTPエラー ${res.status}`);
+    parseAndFill(data.content.map(c => c.text || '').join(''), text);
+    statusEl.textContent = '✅ 再解析完了！バイタル・SOAPを更新しました';
+    statusEl.style.color = 'var(--green)';
+    // 文字起こしパネルを開いたまま転記一覧へスクロール
+    const table = document.querySelector('.card');
+    if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
+    statusEl.textContent = '❌ エラー: ' + msg;
+    statusEl.style.color = 'var(--danger)';
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
+}
+
+// ===== 結果の反映 =====
+function extractJson(text) {
+  // コードブロック除去
+  let s = text.replace(/```json|```/g,'').trim();
+  // 先頭の { から末尾の } までを取り出す
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    s = s.slice(start, end + 1);
+  }
+  return JSON.parse(s);
+}
+
+function parseAndFill(jsonText, fallback='') {
+  // デバッグ用：コンソールにレスポンスを出力
+  console.log('Claude response:', jsonText);
+  try {
+    const d = extractJson(jsonText);
+    document.getElementById('transcriptBox').value = d.transcript || fallback;
+
+    // バイタル → 上書き判定
+    const vMap = [
+      ['v_temp', d.vitals?.temperature, EXISTING.temperature1],
+      ['v_bp_high', d.vitals?.bp_high, EXISTING.pressureHigh1],
+      ['v_bp_low', d.vitals?.bp_low, EXISTING.pressureLow1],
+      ['v_pulse', d.vitals?.pulse, EXISTING.pulse1],
+      ['v_spo2', d.vitals?.spo2, EXISTING.spo21],
+      ['v_resp', d.vitals?.respiration, EXISTING.breathing1],
+      ['v_weight', d.vitals?.weight, EXISTING.weight1],
+      ['v_blood_sugar', d.vitals?.blood_sugar, EXISTING.bloodSugarLevel1],
+    ];
+    hasOverwrite = false;
+    vMap.forEach(([id, val, ex]) => {
+      const el = document.getElementById(id); if (!el) return;
+      el.value = val||''; el.classList.remove('overwrite','has-value');
+      if (val && ex && val!==ex) { el.classList.add('overwrite'); hasOverwrite=true; }
+      else if (val) el.classList.add('has-value');
+    });
+
+    // SOAP → 上書き判定
+    const sNew = buildSoapStr(d.soap?.S, d.soap?.O, d.soap?.A, d.soap?.P);
+    ['soap_s','soap_o','soap_a','soap_p'].forEach(id => document.getElementById(id).classList.remove('overwrite'));
+    if (sNew && EXISTING.observationRecord && sNew !== EXISTING.observationRecord) {
+      hasOverwrite = true;
+      ['soap_s','soap_o','soap_a','soap_p'].forEach(id => document.getElementById(id).classList.add('overwrite'));
+    }
+    document.getElementById('soap_s').value = d.soap?.S||'';
+    document.getElementById('soap_o').value = d.soap?.O||'';
+    document.getElementById('soap_a').value = d.soap?.A||'';
+    document.getElementById('soap_p').value = d.soap?.P||'';
+
+    // ケア項目
+    const careItems = d.care_items||[];
+    document.querySelectorAll('.care-checks input[type=checkbox]').forEach(cb => {
+      cb.checked = careItems.some(ai => ai && cb.dataset.item && (ai.includes(cb.dataset.item)||cb.dataset.item.includes(ai)));
+    });
+
+    // 排泄・食事観察
+    const obs = d.observations || {};
+    const obsMap = [
+      ['v_urine',      obs.urine_count,      EXISTING.urineCount],
+      ['v_defecation', obs.defecation_count,  EXISTING.defecationCount],
+      ['v_fluid',      obs.fluid_intake,      EXISTING.fluidIntake],
+      ['v_meal',       obs.meal_amount,       EXISTING.mealAmount],
+    ];
+    obsMap.forEach(([id, val, ex]) => {
+      const el = document.getElementById(id); if (!el) return;
+      if (val === null || val === undefined || val === '') return;
+      el.value = val;
+      if (ex && String(val) !== String(ex)) { el.classList.add('overwrite'); hasOverwrite = true; }
+    });
+    updateRowStatus('tr_urine',      'v_urine',      'ex_urine',      '回');
+    updateRowStatus('tr_defecation', 'v_defecation', 'ex_defecation', '回');
+    updateRowStatus('tr_fluid',      'v_fluid',      'ex_fluid',      'ml');
+    updateRowStatus('tr_meal',       'v_meal',       'ex_meal',       '');
+
+    // 上書き警告
+    document.getElementById('overwriteWarning').style.display = hasOverwrite ? 'block' : 'none';
+    document.getElementById('overwriteWarning2').style.display = hasOverwrite ? 'block' : 'none';
+
+    // 名前マッチング
+    showNameMatching(d.mentioned_names||[]);
+
+    // テーブル行のステータスを更新
+    updateRowStatus('tr_temp','v_temp','ex_temp','℃');
+    updateBpStatus();
+    updateRowStatus('tr_pulse','v_pulse','ex_pulse','回/分');
+    updateRowStatus('tr_spo2','v_spo2','ex_spo2','%');
+    updateRowStatus('tr_resp','v_resp','ex_resp','回/分');
+    updateRowStatus('tr_weight','v_weight','ex_weight','kg');
+    updateRowStatus('tr_bs','v_blood_sugar','ex_bs','mg/dL');
+    updateSoapStatus();
+
+    setStatus(hasOverwrite ? '⚠️ 上書きされる項目があります' : '✅ 解析完了', hasOverwrite ? 'orange' : 'green');
+    // 文字起こしパネルを自動展開して編集できる状態にする
+    const tPanel = document.getElementById('transcriptPanel');
+    const tIcon  = document.getElementById('transcriptToggleIcon');
+    if (tPanel && tPanel.style.display === 'none') {
+      tPanel.style.display = 'block';
+      if (tIcon) tIcon.textContent = '▲ 閉じる';
+    }
+    // 再解析ステータスをリセット
+    const rStatus = document.getElementById('reanalyzeStatus');
+    if (rStatus) rStatus.textContent = '';
+    goStep(3);
+  } catch(e) {
+    console.error('parseAndFill error:', e, '\nraw:', jsonText);
+    showAnalysisError('JSON解析エラー: ' + e.message + '\n\nClaudeの返答をコンソール(F12)で確認できます');
+    goStep(2);
+  }
+}
+
+// ===== カイポケ連携 =====
+
+function buildBookmarkletCode() {
+  /* ブックマークURLとして保存するため // コメント・改行は禁止。全て1行で記述 */
+  return 'javascript:(function(){' +
+    'if(!location.hostname.includes(\'kaipoke.biz\')){alert(\'カイポケのページで実行してください\');return;}' +
+    'function v(id){var e=document.getElementById(id);return e?(e.value||\'\').trim():\'\''  + '}' +
+    'var hasForm=document.getElementById(\'temperature1\')||document.getElementById(\'observationRecord\');' +
+    'if(!hasForm){alert(\'記録入力ページが見つかりません。\\nカイポケで記録入力ページを開いて実行してください。\');return;}' +
+    'var uN=\'\',h1=document.querySelector(\'h1.page-title\');' +
+    'if(h1){var m=h1.textContent.trim().match(/^(.+?)\\s*様/);if(m)uN=m[1].trim();}' +
+    'var vD=\'\',eraEl=document.querySelector(\'select.form-control1.w70\'),yEl=document.querySelector(\'select.form-control1.w80\'),mdE=document.querySelectorAll(\'select.form-control1.w60\');' +
+    'if(yEl&&mdE.length>=2){var eraIx=eraEl?eraEl.selectedIndex:-1,er=eraEl&&eraIx>=0?eraEl.options[eraIx].text+\'|\'+eraEl.value:\'令和\',yr=parseInt(yEl.value)||0,mo=parseInt(mdE[0].value)||0,dy=parseInt(mdE[1].value)||0;' +
+    'if(yr&&mo&&dy){var ad=yr;if(er.indexOf(\'令和\')>=0)ad=2018+yr;else if(er.indexOf(\'平成\')>=0)ad=1988+yr;else if(er.indexOf(\'昭和\')>=0)ad=1925+yr;else if(yr<100)ad=2018+yr;' +
+    'vD=ad+\'-\'+(\'0\'+mo).slice(-2)+\'-\'+(\'0\'+dy).slice(-2);}}' +
+    'var vTS=\'\',vTE=\'\',aS=document.querySelectorAll(\'select\'),tS=[];' +
+    'for(var i=0;i<aS.length;i++){var cl=aS[i].className;if(cl.indexOf(\'w60\')>=0&&cl.indexOf(\'form-control\')>=0&&cl.indexOf(\'form-control1\')<0&&cl.indexOf(\'linkObservation\')<0&&cl.indexOf(\'linkMedicationAssistance\')<0)tS.push(aS[i]);}' +
+    'if(tS.length>=2){var sh=tS[0].value,sm=tS[1].value||\'00\';if(sh&&sh!==\'--\')vTS=(\'0\'+sh).slice(-2)+\':\'+(\'0\'+(sm||\'00\')).slice(-2);}' +
+    'if(tS.length>=4){var eh=tS[2].value,em=tS[3].value||\'00\';if(eh&&eh!==\'--\')vTE=(\'0\'+eh).slice(-2)+\':\'+(\'0\'+(em||\'00\')).slice(-2);}' +
+    'var sL=[],sS=document.querySelectorAll(\'select[class*="w250"]\');' +
+    'for(var i=0;i<sS.length;i++){var ix=sS[i].selectedIndex;if(ix>=0){var nm=sS[i].options[ix].text.trim();if(nm&&nm!==\'--\'&&nm.length>1&&sL.indexOf(nm)<0)sL.push(nm);}}' +
+    'function vObs(ids){for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&!e.readOnly&&!e.disabled&&(e.value||\'\').trim())return e.value.trim();}return \'\';}' +
+    'function vObsByLabel(hints){' +
+    '  var nrm=function(s){return s.replace(/[\\s\\u3000\\u00a0]+/g,\'\');};' +
+    '  var cells=document.querySelectorAll(\'th,td,dt,label,span\');' +
+    '  for(var ci=0;ci<cells.length;ci++){' +
+    '    var ct=nrm(cells[ci].textContent);' +
+    '    if(ct.length===0||ct.length>30)continue;' +
+    '    for(var hi=0;hi<hints.length;hi++){' +
+    '      var nh=nrm(hints[hi]);' +
+    '      if(nh.length>=3?ct.indexOf(nh)>=0:ct===nh){' +
+    '        var row=cells[ci].closest(\'tr,li,dl\');' +
+    '        if(row){var inp=row.querySelector(\'input[type="text"],input[type="number"],input:not([type]),select\');if(inp&&!inp.readOnly&&!inp.disabled&&inp.value.trim())return inp.value.trim();}' +
+    '        var sib=cells[ci].nextElementSibling;' +
+    '        while(sib){var si=sib.querySelector(\'input,select\')||(sib.tagName===\'INPUT\'||sib.tagName===\'SELECT\'?sib:null);if(si&&!si.readOnly&&!si.disabled&&si.value.trim())return si.value.trim();sib=sib.nextElementSibling;}' +
+    '      }' +
+    '    }' +
+    '  }' +
+    '  return \'\';' +
+    '}' +
+    'var d={_src:\'kaipoke\',_ts:Date.now(),temp:v(\'temperature1\'),bpH:v(\'pressureHigh1\'),bpL:v(\'pressureLow1\'),pulse:v(\'pulse1\'),spo2:v(\'spo21\'),resp:v(\'breathing1\'),weight:v(\'weight1\'),bs:v(\'bloodSugarLevel1\'),' +
+    'urine:vObs([\'urineCount1\',\'urineCount\',\'urineFrequency1\',\'nyou1\'])||vObsByLabel([\'排尿回数\',\'排尿\']),defecation:vObs([\'defecationCount1\',\'defecationCount\',\'stoolCount1\',\'ben1\'])||vObsByLabel([\'排便回数\',\'排便\']),fluid:vObs([\'waterAmount1\',\'fluidIntake1\',\'drinkAmount1\',\'water1\',\'suibun1\',\'inwater1\',\'inAmount1\',\'insideWater1\',\'drinkVolume1\'])||vObsByLabel([\'水分量ml/日\',\'水分量ml\',\'水分摂取量\',\'水分量\',\'飲水量\']),meal:vObs([\'eatAmount1\',\'mealAmount1\',\'foodAmount1\',\'meal1\',\'shokuji1\'])||vObsByLabel([\'食事摂取量\',\'食事量\',\'摂取量\']),' +
+    'soap:v(\'observationRecord\'),user:uN,staffList:sL,staff:sL[0]||\'\',' +
+    'visitDate:vD,visitTimeStart:vTS,visitTimeEnd:vTE,pageTitle:document.title,url:location.href};' +
+    'var j=JSON.stringify(d);' +
+    'if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(j).then(function(){var inf=[];if(d.user)inf.push(\'利用者: \'+d.user);if(d.visitDate)inf.push(\'訪問日: \'+d.visitDate);if(d.visitTimeStart)inf.push(\'時間: \'+d.visitTimeStart+(d.visitTimeEnd?\'〜\'+d.visitTimeEnd:\'\'));if(d.staffList&&d.staffList.length)inf.push(\'職員: \'+d.staffList.join(\'・\'));alert(\'✅ コピーしました！\'+(inf.length?\'\\n\'+inf.join(\'\\n\'):\'\')+\'\\n\\nアシスタントに戻り「カイポケから取得」を押してください。\');}).catch(function(){prompt(\'以下をコピー:\',j);});}else{prompt(\'以下をコピー:\',j);}' +
+    '})();';
+}
+
+function fixBookmarkletHref() {
+  const code = buildBookmarkletCode();
+  const a = document.getElementById('bookmarkletAnchor');
+  if (a) a.href = code;
+}
+
+function initBookmarkletLink() {
+  const a = document.getElementById('bookmarkletAnchor');
+  if (a) a.href = buildBookmarkletCode();
+}
+
+function copyBookmarkletCode() {
+  const code = buildBookmarkletCode();
+  navigator.clipboard.writeText(code).then(() => {
+    const el = document.getElementById('bookmarkletCopied');
+    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 4000); }
+  }).catch(() => {
+    const el = document.getElementById('bookmarkletAnchor');
+    prompt('以下のコードをコピーし、ブックマークのURLに貼り付けてください：', code);
+  });
+}
+
+function toggleKaipokeSection() {
+  const sec = document.getElementById('kaipokeSection');
+  const icon = document.getElementById('kaipokeToggleIcon');
+  const isOpen = sec.style.display !== 'none';
+  sec.style.display = isOpen ? 'none' : 'block';
+  icon.textContent = isOpen ? '▼ 開く' : '▲ 閉じる';
+  if (!isOpen) initBookmarkletLink();
+}
+
+function openKaipoke() {
+  window.open('https://r.kaipoke.biz/', '_blank');
+}
+
+async function fetchFromKaipoke() {
+  const errEl = document.getElementById('kaipokeError');
+  const resEl = document.getElementById('kaipokeResult');
+  errEl.style.display = 'none';
+  resEl.style.display = 'none';
+
+  let text = '';
+  try {
+    text = await navigator.clipboard.readText();
+  } catch(e) {
+    document.getElementById('kaipokeErrorMsg').textContent =
+      'クリップボードへのアクセスが拒否されました。ブラウザの設定でクリップボード許可を有効にしてください。';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch(e) {
+    document.getElementById('kaipokeErrorMsg').innerHTML =
+      'クリップボードにカイポケのデータが見つかりません。<br>先にカイポケの記録ページでブックマークレットを実行してください。';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (!data._src || data._src !== 'kaipoke') {
+    document.getElementById('kaipokeErrorMsg').innerHTML =
+      'カイポケのデータではありません。<br>カイポケの記録ページでブックマークレットを実行してから再試行してください。';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const age = Math.floor((Date.now() - (data._ts || 0)) / 60000);
+  if (age > 30) {
+    const ok = confirm(`${age}分前に取得したデータです。続けて使用しますか？\n（新しいデータを取得する場合は「キャンセル」してブックマークレットを再実行してください）`);
+    if (!ok) return;
+  }
+
+  applyKaipokeData(data);
+
+  // 成功表示
+  const chips = [];
+  if (data.temp)   chips.push(`🌡️ 体温 ${data.temp}℃`);
+  if (data.bpH || data.bpL) chips.push(`🩺 血圧 ${data.bpH}/${data.bpL}`);
+  if (data.pulse)  chips.push(`💓 脈拍 ${data.pulse}`);
+  if (data.spo2)   chips.push(`🫁 SpO2 ${data.spo2}%`);
+  if (data.resp)   chips.push(`🌬️ 呼吸 ${data.resp}`);
+  if (data.weight) chips.push(`⚖️ 体重 ${data.weight}kg`);
+  if (data.bs)     chips.push(`🩸 血糖 ${data.bs}`);
+  if (data.soap)   chips.push(`📒 観察記録 あり`);
+  if (data.user)   chips.push(`🏥 利用者 ${data.user}`);
+  const staffArr = data.staffList && data.staffList.length ? data.staffList : (data.staff ? [data.staff] : []);
+  if (staffArr.length) chips.push(`👤 職員 ${staffArr.join('・')}`);
+  if (data.visitDate) chips.push(`📅 訪問日 ${data.visitDate}`);
+  if (data.visitTimeStart) {
+    const t = data.visitTimeStart + (data.visitTimeEnd ? '〜' + data.visitTimeEnd : '');
+    chips.push(`🕐 時間 ${t}`);
+  }
+
+  const chipHtml = chips.map(c =>
+    `<span style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;color:#065f46">${c}</span>`
+  ).join('');
+  document.getElementById('kaipokeResultBody').innerHTML = chipHtml || '（データなし）';
+  document.getElementById('kaipokeResultMeta').textContent =
+    `取得時刻：${age === 0 ? 'たった今' : age + '分前'} | ページ：${data.pageTitle || data.url || '不明'}`;
+  resEl.style.display = 'block';
+
+  // バッジ更新
+  const badge = document.getElementById('kaipokeStatusBadge');
+  badge.className = 'badge badge-green';
+  badge.textContent = '✅ 取得済み';
+
+}
+
+function applyKaipokeData(data) {
+  // EXISTINGを更新
+  EXISTING.temperature1    = data.temp  || '';
+  EXISTING.pressureHigh1   = data.bpH   || '';
+  EXISTING.pressureLow1    = data.bpL   || '';
+  EXISTING.pulse1          = data.pulse || '';
+  EXISTING.spo21           = data.spo2  || '';
+  EXISTING.breathing1      = data.resp  || '';
+  EXISTING.weight1         = data.weight|| '';
+  EXISTING.bloodSugarLevel1= data.bs    || '';
+  EXISTING.urineCount      = data.urine || '';
+  EXISTING.defecationCount = data.defecation || '';
+  EXISTING.fluidIntake     = data.fluid || '';
+  EXISTING.mealAmount      = data.meal  || '';
+  EXISTING.observationRecord = data.soap || '';
+
+  // テーブルの現在値列を再描画
+  initExistingValues();
+
+  // 利用者名を自動入力（未入力の場合のみ）
+  if (data.user) {
+    const inp = document.getElementById('input_user');
+    if (inp && !inp.value.trim()) { inp.value = data.user; updateConfirm(); }
+  }
+
+  // 記録者を自動選択（staffList全員を選択・最大3名・上段優先）
+  // スペース・記号を正規化し、完全一致→部分一致の順で照合してトグルを経由せず直接セット
+  const staffList = data.staffList && data.staffList.length ? data.staffList : (data.staff ? [data.staff] : []);
+  if (staffList.length) {
+    const norm = s => s.replace(/[\s\u3000・　]+/g, '');
+    const allBtns = Array.from(document.querySelectorAll('.staff-btn'));
+    selectedStaffs = [];
+    allBtns.forEach(b => b.classList.remove('selected'));
+    staffList.forEach(name => {
+      const trimmed = name.trim();
+      const nt = norm(trimmed);
+      const btn = allBtns.find(b => norm(b.textContent) === nt)
+                || allBtns.find(b => norm(b.textContent).startsWith(nt) || nt.startsWith(norm(b.textContent)))
+                || allBtns.find(b => norm(b.textContent).includes(nt) || nt.includes(norm(b.textContent)));
+      if (btn && !selectedStaffs.includes(btn.textContent.trim())) {
+        selectedStaffs.push(btn.textContent.trim());
+        btn.classList.add('selected');
+      }
+    });
+    const dbg = document.getElementById('staffDebug');
+    if (dbg) dbg.remove();
+    const el = document.getElementById('confirm_login');
+    if (selectedStaffs.length) {
+      el.textContent = selectedStaffs.join('・');
+      el.style.color = '#1e3a8a';
+      el.style.fontSize = selectedStaffs.length > 1 ? '15px' : '20px';
+      document.getElementById('check_login').style.display = 'block';
+    } else {
+      el.textContent = '↓ 下のボタンから選択してください（複数可・最大3名）';
+      el.style.color = '#94a3b8';
+      el.style.fontSize = '14px';
+      document.getElementById('check_login').style.display = 'none';
+    }
+    checkProceedReady();
+  }
+
+  // 訪問日時を自動入力
+  // 時刻セット用ヘルパー：SELECTの選択肢から最も近い値を選ぶ
+  function setSelectNearest(el, numVal) {
+    if (!el) return;
+    const opts = Array.from(el.options).map(o => o.value).filter(v => v !== '');
+    if (!opts.length) return;
+    // 完全一致
+    const exact = opts.find(v => parseInt(v) === numVal);
+    if (exact !== undefined) { el.value = exact; return; }
+    // 最近傍
+    const nearest = opts.reduce((a, b) =>
+      Math.abs(parseInt(a) - numVal) <= Math.abs(parseInt(b) - numVal) ? a : b
+    );
+    el.value = nearest;
+  }
+
+  if (data.visitDate) {
+    const calInp = document.getElementById('input_date_cal');
+    if (calInp) {
+      /* YYYY-MM-DD 形式を期待するが、元号変換失敗で "8-03-03" 等が来た場合も補正 */
+      const dp = data.visitDate.split('-').map(Number);
+      let isoDate = data.visitDate;
+      if (dp.length === 3 && dp[0] < 200) {
+        /* 年が小さい＝元号年のまま → 令和として西暦変換 */
+        isoDate = (2018 + dp[0]) + '-' + String(dp[1]).padStart(2,'0') + '-' + String(dp[2]).padStart(2,'0');
+      }
+      calInp.value = isoDate;
+    }
+  }
+  if (data.visitTimeStart) {
+    const parts = data.visitTimeStart.split(':');
+    setSelectNearest(document.getElementById('input_time_h_start'), parseInt(parts[0]||'0'));
+    setSelectNearest(document.getElementById('input_time_m_start'), parseInt(parts[1]||'0'));
+  }
+  if (data.visitTimeEnd) {
+    const parts = data.visitTimeEnd.split(':');
+    setSelectNearest(document.getElementById('input_time_h_end'), parseInt(parts[0]||'0'));
+    setSelectNearest(document.getElementById('input_time_m_end'), parseInt(parts[1]||'0'));
+  }
+  if (data.visitDate || data.visitTimeStart) {
+    updateDateCombo(); // hidden input_date を再構築 → updateConfirm() も呼ばれ対象者確認に反映
+    document.getElementById('check_date').style.display = 'block';
+    checkProceedReady();
+  }
+}
+
+// ===== 管理者設定 =====
+const ADMIN_DEFAULT_ID = 'KWC';
+const ADMIN_DEFAULT_PW = '1215';
+
+function getAdminId() { return localStorage.getItem('admin_id') || ADMIN_DEFAULT_ID; }
+function getAdminPw() { return localStorage.getItem('admin_pw') || ADMIN_DEFAULT_PW; }
+
+function openAdminLogin() {
+  document.getElementById('adminLoginId').value = '';
+  document.getElementById('adminLoginPw').value = '';
+  document.getElementById('adminLoginErr').style.display = 'none';
+  document.getElementById('adminLoginModal').style.display = 'flex';
+}
+function closeAdminLogin() { document.getElementById('adminLoginModal').style.display = 'none'; }
+
+function adminLogin() {
+  const id = document.getElementById('adminLoginId').value.trim();
+  const pw = document.getElementById('adminLoginPw').value;
+  if (id === getAdminId() && pw === getAdminPw()) {
+    closeAdminLogin();
+    openAdminPanel();
+  } else {
+    document.getElementById('adminLoginErr').style.display = 'block';
+  }
+}
+
+function openAdminPanel() {
+  // APIキーをフィールドに反映
+  document.getElementById('admin_openai_key').value = localStorage.getItem('saved_openai_key') || '';
+  document.getElementById('admin_claude_key').value = localStorage.getItem('saved_claude_key') || '';
+  // スタッフリストを反映
+  const staffRaw = localStorage.getItem('staff_list');
+  const staffArr = staffRaw ? JSON.parse(staffRaw) : STAFF_LIST;
+  document.getElementById('admin_staff_list').value = staffArr.join('\n');
+  // 利用者リストを反映
+  const userRaw = localStorage.getItem('user_list');
+  document.getElementById('admin_user_list').value = userRaw ? JSON.parse(userRaw).join('\n') : '';
+  // IDをフィールドに反映
+  document.getElementById('admin_new_id').value = getAdminId();
+  switchAdminTab('api');
+  document.getElementById('adminPanel').style.display = 'block';
+}
+function closeAdminPanel() { document.getElementById('adminPanel').style.display = 'none'; }
+
+function switchAdminTab(tab) {
+  ['api','staff','users','pw'].forEach(t => {
+    document.getElementById('adminTab_' + t).style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab_' + t);
+    btn.className = 'admin-tab' + (t === tab ? ' admin-tab-active' : '');
+  });
+}
+
+function toggleAdminKey(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function saveApiKeySettings() {
+  const ok = document.getElementById('admin_openai_key').value.trim();
+  const ck = document.getElementById('admin_claude_key').value.trim();
+  if (ok) localStorage.setItem('saved_openai_key', ok);
+  if (ck) localStorage.setItem('saved_claude_key', ck);
+  // 入力欄にも反映
+  applyStoredApiKeys();
+  const msg = document.getElementById('apiSaveMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+function clearApiKeySettings() {
+  localStorage.removeItem('saved_openai_key');
+  localStorage.removeItem('saved_claude_key');
+  document.getElementById('admin_openai_key').value = '';
+  document.getElementById('admin_claude_key').value = '';
+  alert('APIキーを削除しました');
+}
+function applyStoredApiKeys() {
+  const ok = localStorage.getItem('saved_openai_key') || '';
+  const ck = localStorage.getItem('saved_claude_key') || '';
+  ['openaiKey'].forEach(id => { const el = document.getElementById(id); if (el && ok) el.value = ok; });
+  ['apiKey','apiKeyManual'].forEach(id => { const el = document.getElementById(id); if (el && ck) el.value = ck; });
+}
+
+function saveStaffSettings() {
+  const lines = document.getElementById('admin_staff_list').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  localStorage.setItem('staff_list', JSON.stringify(lines));
+  rebuildStaffGrid(lines);
+  const msg = document.getElementById('staffSaveMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+function resetStaffSettings() {
+  localStorage.removeItem('staff_list');
+  document.getElementById('admin_staff_list').value = STAFF_LIST.join('\n');
+  rebuildStaffGrid(STAFF_LIST);
+  alert('デフォルトのスタッフリストに戻しました');
+}
+function rebuildStaffGrid(list) {
+  const grid = document.getElementById('staffGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  list.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'staff-btn';
+    btn.textContent = name;
+    btn.onclick = () => selectStaff(name);
+    grid.appendChild(btn);
+  });
+}
+
+function saveUserSettings() {
+  const lines = document.getElementById('admin_user_list').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  localStorage.setItem('user_list', JSON.stringify(lines));
+  applyUserList(lines);
+  const msg = document.getElementById('userSaveMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+function resetUserSettings() {
+  localStorage.removeItem('user_list');
+  document.getElementById('admin_user_list').value = '';
+  const inp = document.getElementById('input_user');
+  if (inp) inp.removeAttribute('list');
+  alert('利用者リストをクリアしました');
+}
+function applyUserList(list) {
+  let dl = document.getElementById('userDatalist');
+  if (!dl) { dl = document.createElement('datalist'); dl.id = 'userDatalist'; document.body.appendChild(dl); }
+  dl.innerHTML = list.map(n => `<option value="${n}">`).join('');
+  const inp = document.getElementById('input_user');
+  if (inp) inp.setAttribute('list', 'userDatalist');
+}
+
+function changeAdminPassword() {
+  const newId = document.getElementById('admin_new_id').value.trim();
+  const newPw = document.getElementById('admin_new_pw').value;
+  const newPw2 = document.getElementById('admin_new_pw2').value;
+  const msg = document.getElementById('pwSaveMsg');
+  if (!newId || !newPw) {
+    msg.style.cssText = 'display:block;background:#fee2e2;color:#7f1d1d;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;margin-top:10px';
+    msg.textContent = '❌ IDとパスワードを入力してください';
+    return;
+  }
+  if (newPw !== newPw2) {
+    msg.style.cssText = 'display:block;background:#fee2e2;color:#7f1d1d;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;margin-top:10px';
+    msg.textContent = '❌ パスワードが一致しません';
+    return;
+  }
+  localStorage.setItem('admin_id', newId);
+  localStorage.setItem('admin_pw', newPw);
+  msg.style.cssText = 'display:block;background:var(--green-light);color:#065f46;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;margin-top:10px';
+  msg.textContent = '✅ 変更しました';
+  setTimeout(() => msg.style.display = 'none', 2500);
+}
+
+// ===== グローバル通知バー =====
+function showNotice(type, html) {
+  const bar = document.getElementById('globalNoticeBar');
+  if (!bar) return;
+  bar.className = 'notice-' + type;
+  bar.style.display = 'flex';
+  bar.innerHTML = html;
+}
+function hideNotice() {
+  const bar = document.getElementById('globalNoticeBar');
+  if (bar) bar.style.display = 'none';
+}
+
+// ===== 転記一覧テーブル ステータス更新 =====
+function rowStatusBadge(val, exVal) {
+  if (!val) return '<span style="color:var(--text2);font-size:11px">— 転記なし</span>';
+  if (!exVal) return '<span class="badge badge-green">🆕 新規</span>';
+  if (val === exVal) return '<span class="badge badge-blue">✓ 同じ</span>';
+  return '<span class="badge badge-orange">⚠️ 上書き</span>';
+}
+function updateRowStatus(rowId, inputId, exId, unit) {
+  const val = document.getElementById(inputId)?.value || '';
+  const exEl = document.getElementById(exId);
+  const exVal = exEl ? exEl.dataset.raw || '' : '';
+  const stEl = document.getElementById('st_' + rowId.replace('tr_',''));
+  if (stEl) stEl.innerHTML = rowStatusBadge(val, exVal);
+  updateOverwriteBadge();
+}
+function updateBpStatus() {
+  const hi = document.getElementById('v_bp_high')?.value || '';
+  const lo = document.getElementById('v_bp_low')?.value || '';
+  const exHi = EXISTING.pressureHigh1 || '';
+  const exLo = EXISTING.pressureLow1 || '';
+  const val = hi || lo;
+  const exVal = exHi || exLo;
+  let badge = '';
+  if (!val) badge = '<span style="color:var(--text2);font-size:11px">— 転記なし</span>';
+  else if (!exVal) badge = '<span class="badge badge-green">🆕 新規</span>';
+  else if (hi===exHi && lo===exLo) badge = '<span class="badge badge-blue">✓ 同じ</span>';
+  else badge = '<span class="badge badge-orange">⚠️ 上書き</span>';
+  const stEl = document.getElementById('st_bp');
+  if (stEl) stEl.innerHTML = badge;
+  updateOverwriteBadge();
+}
+function updateSoapStatus() {
+  const s = document.getElementById('soap_s')?.value || '';
+  const o = document.getElementById('soap_o')?.value || '';
+  const a = document.getElementById('soap_a')?.value || '';
+  const p = document.getElementById('soap_p')?.value || '';
+  const hasNew = s||o||a||p;
+  const hasEx = EXISTING.observationRecord;
+  const stEl = document.getElementById('st_soap');
+  if (stEl) stEl.innerHTML = rowStatusBadge(hasNew, hasEx);
+  updateOverwriteBadge();
+}
+function updateOverwriteBadge() {
+  // 全行の状態を集計してサマリーバナーを更新
+  const overwriteItems = [];
+  const newItems = [];
+
+  const rows = [
+    { label:'🌡️ 体温', stId:'st_temp' },
+    { label:'🩺 血圧', stId:'st_bp' },
+    { label:'💓 脈拍', stId:'st_pulse' },
+    { label:'🫁 SpO2', stId:'st_spo2' },
+    { label:'🌬️ 呼吸', stId:'st_resp' },
+    { label:'⚖️ 体重', stId:'st_weight' },
+    { label:'🩸 血糖値', stId:'st_bs' },
+    { label:'❤️ 不整脈', stId:'st_irreg' },
+    { label:'📒 観察記録', stId:'st_soap' },
+  ];
+  rows.forEach(({label, stId}) => {
+    const el = document.getElementById(stId);
+    if (!el) return;
+    const html = el.innerHTML;
+    if (html.includes('上書き')) overwriteItems.push(label);
+    else if (html.includes('新規')) newItems.push(label);
+  });
+
+  const owSummary = document.getElementById('overwriteSummary');
+  const owList = document.getElementById('overwriteSummaryList');
+  if (owSummary && owList) {
+    if (overwriteItems.length > 0) {
+      owSummary.style.display = 'block';
+      owList.innerHTML = overwriteItems.map(l =>
+        `<span style="background:#fde68a;border:1px solid #f59e0b;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:#92400e">${l}</span>`
+      ).join('');
+    } else {
+      owSummary.style.display = 'none';
+    }
+  }
+
+  const newSummary = document.getElementById('newItemSummary');
+  const newList = document.getElementById('newItemSummaryList');
+  if (newSummary && newList) {
+    if (newItems.length > 0) {
+      newSummary.style.display = 'block';
+      newList.innerHTML = newItems.map(l =>
+        `<span style="background:var(--green-light);border:1px solid var(--green);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:#065f46">${l}</span>`
+      ).join('');
+    } else {
+      newSummary.style.display = 'none';
+    }
+  }
+
+  // グローバル通知バーに上書き情報を反映
+  if (overwriteItems.length > 0) {
+    const tags = overwriteItems.map(l =>
+      `<span style="background:rgba(255,255,255,0.4);border:1px solid #f59e0b;border-radius:5px;padding:2px 8px;font-size:12px;margin:2px">${l}</span>`
+    ).join(' ');
+    showNotice('warn',
+      `<span style="font-size:18px;flex-shrink:0">⚠️</span>
+       <div><div style="font-weight:700;margin-bottom:4px">上書きされる項目があります — 必ず確認してください</div>
+       <div style="font-weight:400;font-size:12px;display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${tags}</div></div>`
+    );
+  } else if (newItems.length > 0) {
+    const tags = newItems.map(l =>
+      `<span style="background:rgba(255,255,255,0.4);border:1px solid #059669;border-radius:5px;padding:2px 8px;font-size:12px;margin:2px">${l}</span>`
+    ).join(' ');
+    showNotice('ok',
+      `<span style="font-size:18px;flex-shrink:0">✅</span>
+       <div><div style="font-weight:700;margin-bottom:4px">解析完了 — 以下の項目を新規追加します</div>
+       <div style="font-weight:400;font-size:12px;display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${tags}</div></div>`
+    );
+  } else {
+    hideNotice();
+  }
+}
+function toggleTranscript() {
+  const panel = document.getElementById('transcriptPanel');
+  const icon = document.getElementById('transcriptToggleIcon');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  icon.textContent = isOpen ? '▼ 表示' : '▲ 閉じる';
+}
+function initExistingValues() {
+  // 既存値を表示用セルにセット
+  const setEx = (id, val, raw) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val || '（なし）';
+    el.dataset.raw = raw || '';
+  };
+  setEx('ex_temp', EXISTING.temperature1 ? EXISTING.temperature1+'℃' : '', EXISTING.temperature1);
+  const bpEl = document.getElementById('ex_bp');
+  if (bpEl) {
+    const bp = (EXISTING.pressureHigh1 && EXISTING.pressureLow1) ? `${EXISTING.pressureHigh1}/${EXISTING.pressureLow1} mmHg` : (EXISTING.pressureHigh1||EXISTING.pressureLow1||'（なし）');
+    bpEl.textContent = bp; bpEl.dataset.raw = EXISTING.pressureHigh1||'';
+  }
+  setEx('ex_pulse', EXISTING.pulse1 ? EXISTING.pulse1+' 回/分' : '', EXISTING.pulse1);
+  setEx('ex_spo2', EXISTING.spo21 ? EXISTING.spo21+'%' : '', EXISTING.spo21);
+  setEx('ex_resp', EXISTING.breathing1 ? EXISTING.breathing1+' 回/分' : '', EXISTING.breathing1);
+  setEx('ex_weight', EXISTING.weight1 ? EXISTING.weight1+'kg' : '', EXISTING.weight1);
+  setEx('ex_bs', EXISTING.bloodSugarLevel1 ? EXISTING.bloodSugarLevel1+' mg/dL' : '', EXISTING.bloodSugarLevel1);
+  setEx('ex_urine',      EXISTING.urineCount      ? EXISTING.urineCount+'回' : '',      EXISTING.urineCount);
+  setEx('ex_defecation', EXISTING.defecationCount ? EXISTING.defecationCount+'回' : '', EXISTING.defecationCount);
+  setEx('ex_fluid',      EXISTING.fluidIntake     ? EXISTING.fluidIntake+'ml' : '',     EXISTING.fluidIntake);
+  setEx('ex_meal',       EXISTING.mealAmount      || '',                                EXISTING.mealAmount);
+  const exSoap = document.getElementById('ex_soap_content');
+  if (exSoap) exSoap.textContent = EXISTING.observationRecord || '（なし）';
+  // 初期ステータス
+  ['tr_temp','tr_pulse','tr_spo2','tr_resp','tr_weight','tr_bs','tr_irreg','tr_urine','tr_defecation','tr_fluid','tr_meal'].forEach(r => {
+    const stEl = document.getElementById('st_' + r.replace('tr_',''));
+    if (stEl) stEl.innerHTML = '<span style="color:var(--text2);font-size:11px">— 転記なし</span>';
+  });
+  const stBp = document.getElementById('st_bp');
+  if (stBp) stBp.innerHTML = '<span style="color:var(--text2);font-size:11px">— 転記なし</span>';
+  const stSoap = document.getElementById('st_soap');
+  if (stSoap) stSoap.innerHTML = '<span style="color:var(--text2);font-size:11px">— 転記なし</span>';
+}
+
+// ===== バイタル入力スタイル =====
+const vExistingMap = {
+  v_temp:EXISTING.temperature1, v_bp_high:EXISTING.pressureHigh1, v_bp_low:EXISTING.pressureLow1,
+  v_pulse:EXISTING.pulse1, v_spo2:EXISTING.spo21, v_resp:EXISTING.breathing1,
+  v_weight:EXISTING.weight1, v_blood_sugar:EXISTING.bloodSugarLevel1
+};
+function markVital(el) {
+  el.classList.remove('overwrite','has-value');
+  const ex = vExistingMap[el.id];
+  if (el.value && ex && el.value!==ex) el.classList.add('overwrite');
+  else if (el.value) el.classList.add('has-value');
+}
+
+// ===== 名前マッチング =====
+function showNameMatching(names) {
+  const box = document.getElementById('nameMatchBox');
+  const content = document.getElementById('nameMatchContent');
+  const user = document.getElementById('input_user').value.trim();
+  const suspicious = names.filter(n => n && !STAFF_LIST.includes(n) && n !== user && n.length > 1);
+  if (!suspicious.length) { box.style.display='none'; return; }
+  box.style.display = 'block';
+  content.innerHTML = '';
+  suspicious.forEach(orig => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap';
+    row.innerHTML = `<span style="font-size:12px;color:var(--text2);min-width:100px">認識名：<strong>${orig}</strong></span>
+      <span style="font-size:12px;color:var(--text2)">→ 正しい名前を選択：</span>`;
+    STAFF_LIST.forEach(staff => {
+      const chip = document.createElement('span');
+      chip.className = 'name-chip';
+      chip.textContent = staff;
+      chip.onclick = () => {
+        row.querySelectorAll('.name-chip').forEach(c => c.classList.remove('selected-name'));
+        chip.classList.add('selected-name');
+        confirmedNames[orig] = staff;
+        replaceNameInSOAP(orig, staff);
+      };
+      row.appendChild(chip);
+    });
+    const inp = document.createElement('input');
+    inp.type='text'; inp.placeholder='手入力...';
+    inp.style.cssText='padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;width:100px;font-family:inherit';
+    inp.onchange = () => { confirmedNames[orig]=inp.value; replaceNameInSOAP(orig,inp.value); };
+    row.appendChild(inp);
+    content.appendChild(row);
+  });
+}
+function replaceNameInSOAP(from, to) {
+  ['soap_s','soap_o','soap_a','soap_p'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.value.includes(from)) el.value = el.value.split(from).join(to);
+  });
+  setStatus(`名前を修正: ${from} → ${to}`);
+}
+
+// ===== プレビュー =====
+function buildSoapStr(s,o,a,p) {
+  return [s&&`S:${s}`, o&&`O:${o}`, a&&`A:${a}`, p&&`P:${p}`].filter(Boolean).join('\n');
+}
+function buildPreview() {
+  document.getElementById('summary_login').textContent = selectedStaffs.join('・');
+  document.getElementById('summary_user').textContent = document.getElementById('input_user').value.trim();
+  document.getElementById('summary_date').textContent = document.getElementById('input_date').value.trim();
+  document.getElementById('fchk_username').textContent = document.getElementById('input_user').value.trim();
+  document.getElementById('fchk_date').textContent = document.getElementById('input_date').value.trim();
+
+  const vitals = [
+    ['体温','v_temp','°C',EXISTING.temperature1],
+    ['血圧（高）','v_bp_high','mmHg',EXISTING.pressureHigh1],
+    ['血圧（低）','v_bp_low','mmHg',EXISTING.pressureLow1],
+    ['脈拍','v_pulse','回/分',EXISTING.pulse1],
+    ['SpO2','v_spo2','%',EXISTING.spo21],
+    ['呼吸','v_resp','回/分',EXISTING.breathing1],
+    ['体重','v_weight','kg',EXISTING.weight1],
+    ['血糖値','v_blood_sugar','mg/dL',EXISTING.bloodSugarLevel1],
+  ];
+  const obsItems = [
+    ['🚽 排尿回数','v_urine','回',EXISTING.urineCount],
+    ['🚾 排便回数','v_defecation','回',EXISTING.defecationCount],
+    ['💧 水分摂取量','v_fluid','ml',EXISTING.fluidIntake],
+    ['🍽️ 食事量','v_meal','',EXISTING.mealAmount],
+  ];
+  const soapNew = buildSoapStr(
+    document.getElementById('soap_s').value,
+    document.getElementById('soap_o').value,
+    document.getElementById('soap_a').value,
+    document.getElementById('soap_p').value
+  );
+  const careChecked = Array.from(document.querySelectorAll('.care-checks input:checked')).map(cb=>cb.dataset.item);
+
+  const makeBadge = (val, ex) => {
+    const isOver = ex && String(val) !== String(ex);
+    return isOver
+      ? '<span class="badge badge-orange">⚠️ 上書き</span>'
+      : (ex ? '<span class="badge badge-blue">更新</span>' : '<span class="badge badge-green">新規</span>');
+  };
+
+  let html = '<table class="preview-table"><tr><th>項目</th><th>転記する値</th><th>既存データ</th><th>状態</th></tr>';
+
+  // バイタル
+  vitals.forEach(([label,id,unit,ex]) => {
+    const val = document.getElementById(id).value;
+    if (!val) return;
+    const isOver = ex && val!==ex;
+    html += `<tr><td class="td-label">🩺 ${label}</td><td class="${isOver?'td-overwrite':''}">${val} <small style="color:var(--text2)">${unit}</small></td><td style="color:var(--text2);font-size:12px">${ex||'（なし）'}</td><td>${makeBadge(val,ex)}</td></tr>`;
+  });
+
+  // 排泄・食事観察
+  const hasObs = obsItems.some(([,id]) => document.getElementById(id)?.value);
+  if (hasObs) {
+    html += `<tr style="background:var(--surface2)"><td colspan="4" style="padding:6px 12px;font-size:12px;font-weight:700;color:var(--text2)">💧 排泄・食事観察</td></tr>`;
+    obsItems.forEach(([label,id,unit,ex]) => {
+      const val = document.getElementById(id)?.value;
+      if (!val) return;
+      const isOver = ex && String(val) !== String(ex);
+      html += `<tr><td class="td-label">${label}</td><td class="${isOver?'td-overwrite':''}">${val}${unit ? ' <small style="color:var(--text2)">'+unit+'</small>' : ''}</td><td style="color:var(--text2);font-size:12px">${ex||'（なし）'}</td><td>${makeBadge(val,ex)}</td></tr>`;
+    });
+  }
+
+  if (soapNew) {
+    const isOver = EXISTING.observationRecord && soapNew!==EXISTING.observationRecord;
+    const exShort = EXISTING.observationRecord ? EXISTING.observationRecord.substring(0,50)+'...' : '（なし）';
+    html += `<tr><td class="td-label">📒 観察記録</td><td class="${isOver?'td-overwrite':''}"><pre style="font-family:'Noto Sans JP',sans-serif;font-size:12px;line-height:1.6;white-space:pre-wrap">${soapNew}</pre></td><td style="font-size:11px;color:var(--text2)">${exShort}</td><td>${makeBadge(soapNew, EXISTING.observationRecord)}</td></tr>`;
+  }
+  if (careChecked.length) {
+    html += `<tr><td class="td-label">🧹 ケア実施</td><td colspan="2">${careChecked.map(c=>`<span class="badge badge-blue" style="margin:2px">${c}</span>`).join(' ')}</td><td><span class="badge badge-green">新規</span></td></tr>`;
+  }
+  html += '</table>';
+  document.getElementById('previewTable').innerHTML = html;
+
+  // 転記チェックをリセット
+  ['fchk1','fchk2','fchk3'].forEach(id => {
+    document.getElementById(id).checked = false;
+    document.getElementById('lbl_'+id).classList.remove('checked');
+  });
+  checkTransferReady();
+}
+
+function checkTransferReady() {
+  const ok = ['fchk1','fchk2','fchk3'].every(id => document.getElementById(id).checked);
+  const btn = document.getElementById('transferBtn');
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  btn.style.background = ok ? 'var(--green)' : '#94a3b8';
+  btn.textContent = ok ? '⬆️ カイポケに転記する' : '🔒 転記チェックを完了してから実行できます';
+}
+
+// ===== 転記実行 =====
+// ===== 転記用ブックマークレット =====
+function buildWriteBookmarkletCode() {
+  return `javascript:(function(){
+  if(!location.hostname.includes('kaipoke.biz')){alert('カイポケのページで実行してください');return;}
+  var hasForm=document.getElementById('temperature1')||document.getElementById('observationRecord');
+  if(!hasForm){alert('記録入力ページが見つかりません。\\n利用者の訪問看護記録ページを開いた状態で実行してください。');return;}
+  function nativeSet(e,val){
+    var tag=e.tagName.toLowerCase();
+    var proto=tag==='textarea'?window.HTMLTextAreaElement.prototype:window.HTMLInputElement.prototype;
+    var desc=Object.getOwnPropertyDescriptor(proto,'value');
+    if(desc&&desc.set){desc.set.call(e,val);}else{e.value=val;}
+  }
+  function fireEvents(e){
+    ['focus','input','change','blur'].forEach(function(ev){
+      var evt=ev==='input'?new InputEvent(ev,{bubbles:true,cancelable:true}):new Event(ev,{bubbles:true});
+      e.dispatchEvent(evt);
+    });
+  }
+  function setField(id,val){
+    if(val===null||val===undefined||val==='')return 0;
+    var e=document.getElementById(id)||document.querySelector('[name="'+id+'"]');
+    if(!e)return 0;
+    nativeSet(e,val);fireEvents(e);
+    return 1;
+  }
+  function setTextarea(id,val){
+    if(val===null||val===undefined||val==='')return 0;
+    var setAndFire=function(el){
+      el.focus();
+      nativeSet(el,val);fireEvents(el);
+      var retry=function(){if(el.value!==val){nativeSet(el,val);fireEvents(el);}};
+      setTimeout(retry,200);setTimeout(retry,600);setTimeout(retry,1200);
+    };
+    /* 1) id完全一致のtextarea */
+    var e=document.getElementById(id);
+    if(e&&e.tagName.toLowerCase()==='textarea'){setAndFire(e);return 1;}
+    /* 2) name属性 */
+    e=document.querySelector('textarea[name="'+id+'"],textarea[name*="'+id+'"]');
+    if(e){setAndFire(e);return 1;}
+    /* 3) contenteditable */
+    var ce=document.querySelector('[id="'+id+'"][contenteditable],[id*="'+id+'"][contenteditable]');
+    if(ce){
+      ce.focus();
+      ce.innerText='';
+      document.execCommand('selectAll',false,null);
+      document.execCommand('insertText',false,val);
+      if(ce.innerText.trim()!==val.trim()){ce.innerText=val;}
+      ['input','change'].forEach(function(ev){ce.dispatchEvent(new Event(ev,{bubbles:true}));});
+      return 1;
+    }
+    /* 4) id/class部分一致ラッパー内のtextarea（複数候補を全走査） */
+    var wrappers=document.querySelectorAll('[id*="observation"],[id*="record"],[class*="observation"],[class*="record"]');
+    for(var wi=0;wi<wrappers.length;wi++){
+      var ta=wrappers[wi].tagName.toLowerCase()==='textarea'?wrappers[wi]:wrappers[wi].querySelector('textarea');
+      if(ta){setAndFire(ta);return 1;}
+    }
+    /* 5) ページ内最大面積のtextarea（観察記録は通常最大） */
+    var allTa=document.querySelectorAll('textarea');
+    var best=null,bestArea=0;
+    for(var ti=0;ti<allTa.length;ti++){
+      var r=allTa[ti].getBoundingClientRect();
+      var area=r.width*r.height;
+      if(area>bestArea){bestArea=area;best=allTa[ti];}
+    }
+    if(best){setAndFire(best);return 1;}
+    return 0;
+  }
+  function checkCare(itemText){
+    /* 記号・空白・中点をまとめて除去した正規化 */
+    var norm=function(s){return s.replace(/[\s\u3000\u00a0\u30fb\u00b7\/\-・]+/g,'');};
+    var nt=norm(itemText);
+    var tryClick=function(cb){
+      if(!cb)return false;
+      if(!cb.checked){cb.click();}
+      return true;
+    };
+    /* ラベルテキストで探す */
+    var labels=document.querySelectorAll('label');
+    for(var i=0;i<labels.length;i++){
+      var lt=norm(labels[i].textContent);
+      if(lt===nt||lt.indexOf(nt)>=0||nt.indexOf(lt)>=0){
+        var cb=labels[i].querySelector('input[type="checkbox"]');
+        if(!cb&&labels[i].htmlFor){cb=document.getElementById(labels[i].htmlFor);}
+        if(!cb){var prev=labels[i].previousElementSibling;if(prev&&prev.type==='checkbox')cb=prev;}
+        if(!cb){var next=labels[i].nextElementSibling;if(next&&next.type==='checkbox')cb=next;}
+        if(tryClick(cb))return true;
+      }
+    }
+    /* チェックボックス親要素（短いテキスト限定）で探す */
+    var allCb=document.querySelectorAll('input[type="checkbox"]');
+    for(var j=0;j<allCb.length;j++){
+      var parent=allCb[j].closest('label,li,td,span');
+      if(parent){
+        var pt=norm(parent.textContent);
+        /* 誤マッチ防止：親テキストが25文字以内の場合のみ */
+        if(pt.length>0&&pt.length<=25&&(pt.indexOf(nt)>=0||nt.indexOf(pt)>=0)){
+          if(tryClick(allCb[j]))return true;
+        }
+      }
+    }
+    return false;
+  }
+  function doFill(d){
+    var filled=[];
+    if(setField('temperature1',d.temp))filled.push('体温');
+    if(setField('pressureHigh1',d.bpH))filled.push('血圧(高)');
+    if(setField('pressureLow1',d.bpL))filled.push('血圧(低)');
+    if(setField('pulse1',d.pulse))filled.push('脈拍');
+    if(setField('spo21',d.spo2))filled.push('SpO2');
+    if(setField('breathing1',d.resp))filled.push('呼吸');
+    if(setField('weight1',d.weight))filled.push('体重');
+    if(setField('bloodSugarLevel1',d.bs))filled.push('血糖値');
+    if(setTextarea('observationRecord',d.soap))filled.push('観察記録');
+    /* 排泄・食事観察項目：ID候補→name属性→label→th/td/span の順で探索 */
+    function setObsField(ids,labelHints,val){
+      if(!val)return 0;
+      var nrm=function(s){return s.replace(/[\s\u3000\u00a0]+/g,'');};
+      /* 入力可能な要素のみ対象 */
+      var canFill=function(e){return e&&!e.readOnly&&!e.disabled&&e.type!=='hidden';};
+      var fillEl=function(e){if(!canFill(e))return 0;nativeSet(e,val);fireEvents(e);return 1;};
+      /* 1) getElementById */
+      for(var k=0;k<ids.length;k++){var e=document.getElementById(ids[k]);if(e&&canFill(e))return fillEl(e);}
+      /* 2) name属性 */
+      for(var n=0;n<ids.length;n++){var eN=document.querySelector('input[name="'+ids[n]+'"],select[name="'+ids[n]+'"]');if(eN&&canFill(eN))return fillEl(eN);}
+      /* 3) label要素 */
+      var labels=document.querySelectorAll('label');
+      for(var li=0;li<labels.length;li++){
+        var lt=nrm(labels[li].textContent);
+        for(var hi=0;hi<labelHints.length;hi++){
+          var lnh=nrm(labelHints[hi]);
+          var lmatched=(lnh.length>=3)?lt.indexOf(lnh)>=0:lt===lnh;
+          if(lmatched){
+            var inp=labels[li].querySelector('input,select');
+            if(!inp&&labels[li].htmlFor)inp=document.getElementById(labels[li].htmlFor);
+            if(inp&&canFill(inp))return fillEl(inp);
+          }
+        }
+      }
+      /* 4) th/td/span/dt をラベルとしてテーブル行内の入力欄を探す（カイポケはテーブル形式フォーム） */
+      var cells=document.querySelectorAll('th,td,dt,span,label,div');
+      for(var ci=0;ci<cells.length;ci++){
+        var ct=nrm(cells[ci].textContent);
+        if(ct.length===0||ct.length>30)continue;
+        for(var hi2=0;hi2<labelHints.length;hi2++){
+          var nh=nrm(labelHints[hi2]);
+          /* ヒントが3文字未満の場合は完全一致のみ（誤マッチ防止） */
+          var matched=(nh.length>=3)?ct.indexOf(nh)>=0:ct===nh;
+          if(matched){
+            /* 同じ行（tr）内の入力可能な input/select を探す */
+            var row=cells[ci].closest('tr,li,dl,fieldset,div.form-group,div.field');
+            if(row){
+              var rowInps=row.querySelectorAll('input[type="text"],input[type="number"],input:not([type]),select');
+              for(var ri=0;ri<rowInps.length;ri++){if(canFill(rowInps[ri]))return fillEl(rowInps[ri]);}
+            }
+            /* 次の兄弟要素内の入力可能な input/select を探す */
+            var sib=cells[ci].nextElementSibling;
+            while(sib){
+              var si=sib.querySelector('input,select');
+              if(!si&&(sib.tagName==='INPUT'||sib.tagName==='SELECT'))si=sib;
+              if(si&&canFill(si))return fillEl(si);
+              sib=sib.nextElementSibling;
+            }
+          }
+        }
+      }
+      console.log('[転記未一致] ヒント:'+labelHints.join('/')+' 値:'+val);
+      return 0;
+    }
+    if(setObsField(['urineCount1','urineCount','urineFrequency1','urine1','nyou1'],['排尿回数','排尿'],d.urine))filled.push('排尿回数');
+    if(setObsField(['defecationCount1','defecationCount','stoolCount1','defecation1','ben1'],['排便回数','排便'],d.defecation))filled.push('排便回数');
+    if(setObsField(['waterAmount1','fluidIntake1','drinkAmount1','water1','suibun1','inwater1','inAmount1','insideWater1','insideAmount1','drinkVolume1','fluidVolume1'],['水分量ml/日','水分量ml','水分摂取量','水分量','飲水量','飲水'],d.fluid))filled.push('水分摂取量');
+    if(setObsField(['eatAmount1','mealAmount1','foodAmount1','meal1','shokuji1','shokujiRyo1'],['食事摂取量','食事量','摂取量','食事'],d.meal))filled.push('食事量');
+    if(d.care_items&&d.care_items.length){
+      var careOk=[];var careFail=[];
+      d.care_items.forEach(function(item){
+        if(checkCare(item))careOk.push(item);else careFail.push(item);
+      });
+      if(careOk.length)filled.push('ケア実施('+careOk.join('・')+')');
+      if(careFail.length)filled.push('※未一致:'+careFail.join('・'));
+    }
+    if(filled.length===0){alert('転記できる項目がありませんでした。\\nアシスタント画面で「転記データをコピー」してから再実行してください。');return;}
+    /* 排泄・食事が未一致の場合、ページ上の入力欄IDを収集してデバッグ表示 */
+    var obsItems=['排尿回数','排便回数','水分摂取量'];
+    var missingObs=obsItems.filter(function(x){return filled.indexOf(x)<0&&((x==='排尿回数'&&d.urine)||(x==='排便回数'&&d.defecation)||(x==='水分摂取量'&&d.fluid));});
+    var msg='✅ 転記完了！\\n入力された項目：'+filled.join('、')+'\\n\\n内容を確認したうえで「保存する」を押してください。';
+    if(missingObs.length>0){
+      var allIds=[];
+      document.querySelectorAll('input[type="text"],input[type="number"],input:not([type]),select').forEach(function(e){
+        var label='';
+        var row=e.closest('tr,li,dl');
+        if(row){var th=row.querySelector('th,td,dt,label');if(th)label='['+th.textContent.trim().slice(0,8)+']';}
+        if(e.id&&e.id!=='')allIds.push(label+e.id);
+        else if(e.name&&e.name!=='')allIds.push(label+'name:'+e.name);
+        else allIds.push(label+'(noId)');
+      });
+      /* 水分関連と思われるセルテキストを抽出 */
+      var waterCells=[];
+      document.querySelectorAll('th,td,dt,span,label').forEach(function(c){
+        var t=c.textContent.trim();
+        if(t.length>0&&t.length<=20&&(t.indexOf('水')>=0||t.indexOf('飲')>=0||t.indexOf('IN')>=0)){
+          var row=c.closest('tr');
+          var inp=row?row.querySelector('input,select'):null;
+          waterCells.push('"'+t+'"→'+(inp?(inp.id||'name:'+inp.name||'noId'):'入力なし'));
+        }
+      });
+      msg+='\\n\\n⚠️ 未一致：'+missingObs.join('、');
+      if(waterCells.length>0)msg+='\\n💧水分候補セル：'+waterCells.slice(0,5).join(' / ');
+      msg+='\\nページ入力欄(ID→ラベル)：'+allIds.slice(0,25).join(', ');
+      console.log('[未一致フィールド]',missingObs);
+      console.log('[全入力欄]',allIds);
+      console.log('[水分候補]',waterCells);
+    }
+    alert(msg);
+  }
+  if(navigator.clipboard&&navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(text){
+      var d;try{d=JSON.parse(text);}catch(e){alert('クリップボードにデータがありません。\\nアシスタント画面で「転記データをコピー」ボタンを押してから再実行してください。');return;}
+      if(!d._src||d._src!=='kaipoke_transfer'){alert('転記データではありません（_src不一致）。\\nアシスタント画面で「転記データをコピー」してから再実行してください。');return;}
+      var age=Math.floor((Date.now()-(d._ts||0))/60000);
+      if(age>30){if(!confirm(age+'分前のデータです。続けますか？'))return;}
+      doFill(d);
+    }).catch(function(){
+      var text=prompt('クリップボード読み取りが拒否されました。\\nアシスタント画面からコピーしたJSONをここに貼り付けてください：');
+      if(!text)return;
+      var d;try{d=JSON.parse(text);}catch(e){alert('JSONの解析に失敗しました。');return;}
+      doFill(d);
+    });
+  }else{
+    var text=prompt('転記データをここに貼り付けてください：');
+    if(!text)return;
+    var d;try{d=JSON.parse(text);}catch(e){alert('解析失敗');return;}
+    doFill(d);
+  }
+})();`;
+}
+
+function fixWriteBookmarkletHref() {
+  const a = document.getElementById('writeBookmarkletAnchor');
+  if (a) a.href = buildWriteBookmarkletCode();
+}
+
+function copyWriteBookmarkletCode() {
+  const code = buildWriteBookmarkletCode();
+  navigator.clipboard.writeText(code).then(() => {
+    const el = document.getElementById('writeBookmarkletCopied');
+    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 4000); }
+  }).catch(() => {
+    prompt('以下のコードをコピーし、ブックマークのURLに貼り付けてください：', code);
+  });
+}
+
+async function doTransfer() {
+  const result = document.getElementById('transferResult');
+
+  // 転記するデータを収集
+  const soapText = buildSoapStr(
+    document.getElementById('soap_s').value,
+    document.getElementById('soap_o').value,
+    document.getElementById('soap_a').value,
+    document.getElementById('soap_p').value
+  );
+  const careChecked = Array.from(document.querySelectorAll('.care-checks input:checked')).map(cb=>cb.dataset.item);
+  const data = {
+    _src: 'kaipoke_transfer',
+    _ts: Date.now(),
+    temp:   document.getElementById('v_temp').value,
+    bpH:    document.getElementById('v_bp_high').value,
+    bpL:    document.getElementById('v_bp_low').value,
+    pulse:  document.getElementById('v_pulse').value,
+    spo2:   document.getElementById('v_spo2').value,
+    resp:   document.getElementById('v_resp').value,
+    weight: document.getElementById('v_weight').value,
+    bs:     document.getElementById('v_blood_sugar').value,
+    soap:   soapText,
+    urine:  document.getElementById('v_urine').value,
+    defecation: document.getElementById('v_defecation').value,
+    fluid:  document.getElementById('v_fluid').value,
+    meal:   document.getElementById('v_meal').value,
+    care_items: careChecked,
+    staff:  selectedStaffs.join('・'),
+    user:   document.getElementById('input_user').value.trim(),
+    date:   document.getElementById('input_date').value.trim()
+  };
+
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(data));
+    result.innerHTML = `
+      <div class="alert alert-success" style="font-size:13px;margin-top:16px">
+        <span style="font-size:22px">📋</span>
+        <div>
+          <strong style="font-size:14px">転記データをコピーしました！</strong><br>
+          <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
+          <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
+            <strong>次の手順：</strong><br>
+            1. カイポケで対象利用者の訪問看護記録ページを開く<br>
+            2. ブックマークバーの「📋 カイポケ転記ツール」をクリック<br>
+            3. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
+          </div>
+        </div>
+      </div>`;
+    setStatus('📋 転記データコピー済み — カイポケで転記ツールを実行してください', 'green');
+    // ブックマークレットリンクも更新
+    fixWriteBookmarkletHref();
+  } catch(e) {
+    result.innerHTML = `<div class="alert alert-danger">❌ クリップボードへのコピーに失敗しました: ${e.message}</div>`;
+  }
+}
+
+async function fileToBase64(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>
