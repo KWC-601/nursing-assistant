@@ -1721,7 +1721,9 @@ function buildBookmarkletCode() {
     'soap:v(\'observationRecord\'),user:uN,staffList:sL,staff:sL[0]||\'\',' +
     'visitDate:vD,visitTimeStart:vTS,visitTimeEnd:vTE,pageTitle:document.title,url:location.href};' +
     'var j=JSON.stringify(d);' +
-    'if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(j).then(function(){var inf=[];if(d.user)inf.push(\'利用者: \'+d.user);if(d.visitDate)inf.push(\'訪問日: \'+d.visitDate);if(d.visitTimeStart)inf.push(\'時間: \'+d.visitTimeStart+(d.visitTimeEnd?\'〜\'+d.visitTimeEnd:\'\'));if(d.staffList&&d.staffList.length)inf.push(\'職員: \'+d.staffList.join(\'・\'));alert(\'✅ コピーしました！\'+(inf.length?\'\\n\'+inf.join(\'\\n\'):\'\')+\'\\n\\nアシスタントに戻り「カイポケから取得」を押してください。\');}).catch(function(){prompt(\'以下をコピー:\',j);});}else{prompt(\'以下をコピー:\',j);}' +
+    '/* iOSショートカット対応: completion()が使える場合はそちらで返す */' +
+    'if(typeof completion===\'function\'){completion(j);}' +
+    'else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(j).then(function(){var inf=[];if(d.user)inf.push(\'利用者: \'+d.user);if(d.visitDate)inf.push(\'訪問日: \'+d.visitDate);if(d.visitTimeStart)inf.push(\'時間: \'+d.visitTimeStart+(d.visitTimeEnd?\'〜\'+d.visitTimeEnd:\'\'));if(d.staffList&&d.staffList.length)inf.push(\'職員: \'+d.staffList.join(\'・\'));alert(\'✅ コピーしました！\'+(inf.length?\'\\n\'+inf.join(\'\\n\'):\'\')+\'\\n\\nアシスタントに戻り「カイポケから取得」を押してください。\');}).catch(function(){prompt(\'以下をコピー:\',j);});}else{prompt(\'以下をコピー:\',j);}' +
     '})();';
 }
 
