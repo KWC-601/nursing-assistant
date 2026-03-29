@@ -583,7 +583,7 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
           <p style="color:var(--text2);font-size:12px;margin-top:4px">またはここにドラッグ＆ドロップ</p>
           <p style="color:var(--text2);font-size:12px;margin-top:4px">対応形式: m4a / mp3 / wav / webm / ogg</p>
         </div>
-        <input type="file" id="fileInput" accept="audio/*" onchange="onFileSelect(this)" style="display:none">
+        <input type="file" id="fileInput" accept="audio/*,.m4a,.mp3,.wav,.aac,.flac,.ogg,.webm,audio/mp4,audio/x-m4a" onchange="onFileSelect(this)" style="display:none">
         <div id="fileInfo" style="display:none;margin-top:12px">
           <div class="alert alert-success"><span>✅</span><span id="fileName"></span></div>
           <button class="btn btn-primary btn-lg btn-full" onclick="analyzeAudio()">🔍 文字起こし・解析を開始</button>
