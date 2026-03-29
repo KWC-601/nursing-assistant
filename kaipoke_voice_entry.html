@@ -369,11 +369,11 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
 
           <!-- STEP 3 -->
           <div style="background:var(--accent-light);border:2px solid var(--accent);border-radius:10px;padding:13px 16px">
-            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">⬇️ STEP 3 — このページで「カイポケから取得」を押す</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px">ブックマークレット実行後、このページに戻りボタンを押してください。</div>
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">⬇️ STEP 3 — ブックマークレットを実行すると自動でこのページに戻ります</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px">カイポケの記録ページでブックマークレットをタップすると、<strong>自動的にこのページに移動してデータが読み込まれます。</strong>ボタンを押す必要はありません。<br>
+            <span style="color:var(--orange)">※PCのみ：クリップボードから取得したい場合はボタンを使用</span></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button onclick="fetchFromKaipoke()" class="btn btn-primary" style="font-size:13px;padding:10px 20px">🔗 カイポケから取得</button>
-              <button onclick="fetchFromKaipoke()" class="btn btn-outline" style="font-size:12px;padding:9px 16px">🔄 再取得</button>
+              <button onclick="fetchFromKaipoke()" class="btn btn-outline" style="font-size:12px;padding:9px 16px">🔄 手動で再取得（PC用）</button>
             </div>
           </div>
         </div>
@@ -1146,6 +1146,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ブックマークレットリンクを初期化（読み取り用・書き込み用）
   initBookmarkletLink();
   fixWriteBookmarkletHref();
+  // URLハッシュにカイポケデータがあれば自動読み込み
+  checkHashData();
   // 保存済みAPIキーを自動反映
   applyStoredApiKeys();
   // 保存済みスタッフリストを反映
@@ -1721,9 +1723,8 @@ function buildBookmarkletCode() {
     'soap:v(\'observationRecord\'),user:uN,staffList:sL,staff:sL[0]||\'\',' +
     'visitDate:vD,visitTimeStart:vTS,visitTimeEnd:vTE,pageTitle:document.title,url:location.href};' +
     'var j=JSON.stringify(d);' +
-    '/* iOSショートカット対応: completion()が使える場合はそちらで返す */' +
-    'if(typeof completion===\'function\'){completion(j);}' +
-    'else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(j).then(function(){var inf=[];if(d.user)inf.push(\'利用者: \'+d.user);if(d.visitDate)inf.push(\'訪問日: \'+d.visitDate);if(d.visitTimeStart)inf.push(\'時間: \'+d.visitTimeStart+(d.visitTimeEnd?\'〜\'+d.visitTimeEnd:\'\'));if(d.staffList&&d.staffList.length)inf.push(\'職員: \'+d.staffList.join(\'・\'));alert(\'✅ コピーしました！\'+(inf.length?\'\\n\'+inf.join(\'\\n\'):\'\')+\'\\n\\nアシスタントに戻り「カイポケから取得」を押してください。\');}).catch(function(){prompt(\'以下をコピー:\',j);});}else{prompt(\'以下をコピー:\',j);}' +
+    'var b64=btoa(unescape(encodeURIComponent(j)));' +
+    'location.href=\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64;' +
     '})();';
 }
 
@@ -1781,58 +1782,32 @@ function fetchFromKaipokeManual() {
   loadKaipokeData(data);
 }
 
-async function fetchFromKaipoke() {
+/* URLハッシュ（#kd=...）にカイポケデータがある場合は自動読み込み */
+function checkHashData() {
+  const hash = location.hash;
+  if (!hash.startsWith('#kd=')) return;
+  const b64 = hash.slice(4);
+  try {
+    const json = decodeURIComponent(escape(atob(b64)));
+    const data = JSON.parse(json);
+    if (data && data._src === 'kaipoke') {
+      history.replaceState(null, '', location.pathname + location.search);
+      showKaipokeResult(data);
+    }
+  } catch(e) {
+    console.warn('checkHashData error:', e);
+  }
+}
+
+function showKaipokeResult(data) {
   const errEl = document.getElementById('kaipokeError');
   const resEl = document.getElementById('kaipokeResult');
   errEl.style.display = 'none';
   resEl.style.display = 'none';
 
-  /* iOSではclipboard.readText()がネイティブ「ペースト」ポップアップを出すためスキップ */
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-  let text = '';
-  if (!isIOS) {
-    try {
-      text = await navigator.clipboard.readText();
-    } catch(e) {
-      text = '';
-    }
-  }
-
-  /* クリップボードが空またはJSONでない場合はpromptで貼り付けを促す */
-  let data;
-  try {
-    if (!text) throw new Error('empty');
-    data = JSON.parse(text);
-    if (!data._src || data._src !== 'kaipoke') throw new Error('invalid');
-  } catch(e) {
-    const pasted = prompt('ブックマークレット実行後にコピーされたデータを貼り付けてください：');
-    if (!pasted) return;
-    try {
-      data = JSON.parse(pasted);
-    } catch(e2) {
-      alert('データの形式が正しくありません。ブックマークレットを再実行してください。');
-      return;
-    }
-  }
-
-  if (!data._src || data._src !== 'kaipoke') {
-    document.getElementById('kaipokeErrorMsg').innerHTML =
-      'カイポケのデータではありません。<br>カイポケの記録ページでブックマークレットを実行してから再試行してください。';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  const age = Math.floor((Date.now() - (data._ts || 0)) / 60000);
-  if (age > 30) {
-    const ok = confirm(`${age}分前に取得したデータです。続けて使用しますか？\n（新しいデータを取得する場合は「キャンセル」してブックマークレットを再実行してください）`);
-    if (!ok) return;
-  }
-
   applyKaipokeData(data);
 
-  // 成功表示
+  const age = Math.floor((Date.now() - (data._ts || 0)) / 60000);
   const chips = [];
   if (data.temp)   chips.push(`🌡️ 体温 ${data.temp}℃`);
   if (data.bpH || data.bpL) chips.push(`🩺 血圧 ${data.bpH}/${data.bpL}`);
@@ -1850,7 +1825,6 @@ async function fetchFromKaipoke() {
     const t = data.visitTimeStart + (data.visitTimeEnd ? '〜' + data.visitTimeEnd : '');
     chips.push(`🕐 時間 ${t}`);
   }
-
   const chipHtml = chips.map(c =>
     `<span style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;color:#065f46">${c}</span>`
   ).join('');
@@ -1858,12 +1832,41 @@ async function fetchFromKaipoke() {
   document.getElementById('kaipokeResultMeta').textContent =
     `取得時刻：${age === 0 ? 'たった今' : age + '分前'} | ページ：${data.pageTitle || data.url || '不明'}`;
   resEl.style.display = 'block';
-
-  // バッジ更新
   const badge = document.getElementById('kaipokeStatusBadge');
   badge.className = 'badge badge-green';
   badge.textContent = '✅ 取得済み';
+}
 
+async function fetchFromKaipoke() {
+  const errEl = document.getElementById('kaipokeError');
+  errEl.style.display = 'none';
+
+  /* クリップボードから試みる（PCのみ）*/
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let text = '';
+  if (!isIOS) {
+    try { text = await navigator.clipboard.readText(); } catch(e) { text = ''; }
+  }
+
+  let data;
+  try {
+    if (!text) throw new Error('empty');
+    data = JSON.parse(text);
+    if (!data._src || data._src !== 'kaipoke') throw new Error('invalid');
+  } catch(e) {
+    document.getElementById('kaipokeErrorMsg').innerHTML =
+      'カイポケのデータが取得できませんでした。<br>カイポケの記録ページでブックマークレットを実行してください。';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const age = Math.floor((Date.now() - (data._ts || 0)) / 60000);
+  if (age > 30) {
+    const ok = confirm(`${age}分前に取得したデータです。続けて使用しますか？\n（新しいデータを取得する場合は「キャンセル」してブックマークレットを再実行してください）`);
+    if (!ok) return;
+  }
+  showKaipokeResult(data);
 }
 
 function applyKaipokeData(data) {
