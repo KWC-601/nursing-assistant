@@ -1787,16 +1787,23 @@ async function fetchFromKaipoke() {
   errEl.style.display = 'none';
   resEl.style.display = 'none';
 
+  /* iOSではclipboard.readText()がネイティブ「ペースト」ポップアップを出すためスキップ */
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
   let text = '';
-  try {
-    text = await navigator.clipboard.readText();
-  } catch(e) {
-    text = '';
+  if (!isIOS) {
+    try {
+      text = await navigator.clipboard.readText();
+    } catch(e) {
+      text = '';
+    }
   }
 
   /* クリップボードが空またはJSONでない場合はpromptで貼り付けを促す */
   let data;
   try {
+    if (!text) throw new Error('empty');
     data = JSON.parse(text);
     if (!data._src || data._src !== 'kaipoke') throw new Error('invalid');
   } catch(e) {
