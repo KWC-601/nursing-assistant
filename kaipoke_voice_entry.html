@@ -1791,25 +1791,23 @@ async function fetchFromKaipoke() {
   try {
     text = await navigator.clipboard.readText();
   } catch(e) {
-    /* クリップボード拒否時は手動貼り付けダイアログを表示 */
     text = '';
   }
 
-  /* クリップボードが空またはJSONでない場合は手動入力を促す */
+  /* クリップボードが空またはJSONでない場合はpromptで貼り付けを促す */
   let data;
   try {
     data = JSON.parse(text);
     if (!data._src || data._src !== 'kaipoke') throw new Error('invalid');
   } catch(e) {
-    /* 手動貼り付けエリアを表示 */
-    const errMsgEl = document.getElementById('kaipokeErrorMsg');
-    errMsgEl.innerHTML =
-      'クリップボードからの自動取得ができませんでした。<br>' +
-      'ショートカット実行後に表示されたデータをコピーし、以下に貼り付けてください：<br><br>' +
-      '<textarea id="manualPasteArea" style="width:100%;height:80px;font-size:11px;padding:6px;border-radius:6px;border:1px solid #fca5a5;background:#fff" placeholder="ここにJSONデータを貼り付け"></textarea><br>' +
-      '<button onclick="fetchFromKaipokeManual()" style="margin-top:8px;padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">この内容で取得</button>';
-    errEl.style.display = 'block';
-    return;
+    const pasted = prompt('ブックマークレット実行後にコピーされたデータを貼り付けてください：');
+    if (!pasted) return;
+    try {
+      data = JSON.parse(pasted);
+    } catch(e2) {
+      alert('データの形式が正しくありません。ブックマークレットを再実行してください。');
+      return;
+    }
   }
 
   if (!data._src || data._src !== 'kaipoke') {
