@@ -1336,12 +1336,33 @@ function addLog(msg, done=false) {
 }
 
 // ===== 解析プロンプト =====
+function buildSystemPrompt() {
+  return `あなたは訪問看護の記録を支援するアシスタントです。
+SOAP記録のO欄（客観的情報）を作成する際は以下のルールを必ず守ってください。
+
+【O欄の記述ルール】
+1. 看護師がその場で直接目視・測定した事実 → 「〜の状態。」「〜あり。」など状態表現を使う
+2. 患者・家族から聴取した情報（睡眠・食事・排泄・行動など） → 「〜とのこと。」「〜との報告。」を使う
+3.「確認した」「観察した」「観察された」「みられた」「認めた」「行った」などの動詞で文を終えることは禁止
+4. 元テキストにない表現を補って追加することは禁止
+5. 箇条書き・改行は使わず、句読点でつなぐ文章形式で2〜3文以内にまとめる
+6. バイタル数値・氏名はO欄に含めない`;
+}
+
 function buildPrompt() {
   return `訪問看護の記録内容を解析してJSON形式で返してください（JSONのみ、コードブロック不要）。
 
 【重要】このテキスト・音声には利用者氏名・訪問日・記録者名・事業所名は含まれていません。
 これらの個人識別情報は別途管理されており、本解析対象外です。
 テキスト中に万が一氏名・日付・担当者名のような記載があっても、返すJSONには含めないでください。
+
+【SOAP O欄の絶対ルール】
+O欄は以下の使い分けを厳守すること：
+・看護師が直接その場で目視・測定した事実 → 「〜の状態。」「〜あり。」など状態表現
+・患者・家族から聞いた情報（睡眠・食事・排泄など）→ 必ず「〜とのこと。」「〜との報告。」で記述し「確認した」は使わない
+・「確認した」「観察した」「観察された」「みられた」「認めた」などの動詞で文を終えることは原則禁止。
+  ただし元テキストに全く同じ動詞表現があり、かつ看護師が直接その場で確認した事実である場合のみ例外的に使用可。
+元テキストにない表現を補うことは絶対に禁止。
 
 {
   "transcript": "文字起こし全文（氏名・日付・担当者名があれば除去して返す）",
@@ -1358,7 +1379,7 @@ function buildPrompt() {
   },
   "soap": {
     "S": "患者・家族の訴えや言葉を1〜2文で簡潔に。「〇〇とのこと」「〇〇と話される」など短くまとめる。氏名は含めない。情報がなければ空文字",
-    "O": "看護師が観察・確認した事実のみを、句読点を使った文章形式で2〜3文以内に簡潔にまとめる（箇条書き・改行不可。バイタル数値は除く。「〇〇を確認した。〇〇の状態であった」のように短い文をつなぐ）。氏名は含めない",
+    "O": "観察事実を句読点でつなぐ2〜3文以内の文章（箇条書き不可・改行不可・バイタル除く・氏名不要）。直接観察した事実は「〜の状態。」「〜あり。」、患者・家族からの聴取情報は「〜とのこと。」「〜との報告。」で記述。「確認した」「観察された」「みられた」「認めた」などの動詞で文を終えることは禁止。",
     "A": "1文で簡潔に。「〇〇は安定している」「〇〇に注意が必要」など端的に",
     "P": "1〜2文で簡潔に。「引き続き〇〇を継続」「次回〇〇を確認」など端的に。特記なければ空文字"
   },
@@ -1465,6 +1486,7 @@ async function analyzeAudio() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: buildSystemPrompt(),
         messages: [{role: 'user', content:
           `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`
         }]
@@ -1505,6 +1527,7 @@ async function analyzeText() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: buildSystemPrompt(),
         messages: [{role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
       })
     });
@@ -1546,6 +1569,7 @@ async function reanalyzeTranscript() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: buildSystemPrompt(),
         messages: [{role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
       })
     });
@@ -1894,10 +1918,20 @@ function applyKaipokeData(data) {
   // テーブルの現在値列を再描画
   initExistingValues();
 
-  // 利用者名を自動入力（未入力の場合のみ）
+  // vExistingMapも更新（バイタル差分ハイライト用）
+  vExistingMap.v_temp        = data.temp   || '';
+  vExistingMap.v_bp_high     = data.bpH    || '';
+  vExistingMap.v_bp_low      = data.bpL    || '';
+  vExistingMap.v_pulse       = data.pulse  || '';
+  vExistingMap.v_spo2        = data.spo2   || '';
+  vExistingMap.v_resp        = data.resp   || '';
+  vExistingMap.v_weight      = data.weight || '';
+  vExistingMap.v_blood_sugar = data.bs     || '';
+
+  // 利用者名を自動入力（常に更新）
   if (data.user) {
     const inp = document.getElementById('input_user');
-    if (inp && !inp.value.trim()) { inp.value = data.user; updateConfirm(); }
+    if (inp) { inp.value = data.user; updateConfirm(); }
   }
 
   // 記録者を自動選択（staffList全員を選択・最大3名・上段優先）
