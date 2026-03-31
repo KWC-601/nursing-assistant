@@ -1146,8 +1146,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ブックマークレットリンクを初期化（読み取り用・書き込み用）
   initBookmarkletLink();
   fixWriteBookmarkletHref();
-  // URLハッシュにカイポケデータがあれば自動読み込み
+  // URLハッシュにカイポケデータがあれば自動読み込み（初回 + 再読み取り時）
   checkHashData();
+  window.addEventListener('hashchange', checkHashData);
   // 保存済みAPIキーを自動反映
   applyStoredApiKeys();
   // 保存済みスタッフリストを反映
