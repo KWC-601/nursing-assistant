@@ -2666,24 +2666,33 @@ function buildWriteBookmarkletCode() {
     }
     alert(msg);
   }
-  if(navigator.clipboard&&navigator.clipboard.readText){
+  /* iOSはclipboard.readText()がペーストポップアップを出すためスキップしprompt()を使用 */
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  function runFill(text){
+    var d;
+    try{d=JSON.parse(text);}catch(e){alert('データの形式が正しくありません。\\nアシスタントで転記ボタンを押してから再実行してください。');return;}
+    if(!d._src||d._src!=='kaipoke_transfer'){alert('転記データではありません。\\nアシスタントで転記ボタンを押してから実行してください。');return;}
+    var age=Math.floor((Date.now()-(d._ts||0))/60000);
+    if(age>30){if(!confirm(age+'分前のデータです。続けますか？'))return;}
+    doFill(d);
+  }
+  if(isIOS){
+    var text=prompt('アシスタントの転記ボタンを押した後、ここに貼り付けてください：');
+    if(!text)return;
+    runFill(text);
+  }else if(navigator.clipboard&&navigator.clipboard.readText){
     navigator.clipboard.readText().then(function(text){
-      var d;try{d=JSON.parse(text);}catch(e){alert('クリップボードにデータがありません。\\nアシスタント画面で「転記データをコピー」ボタンを押してから再実行してください。');return;}
-      if(!d._src||d._src!=='kaipoke_transfer'){alert('転記データではありません（_src不一致）。\\nアシスタント画面で「転記データをコピー」してから再実行してください。');return;}
-      var age=Math.floor((Date.now()-(d._ts||0))/60000);
-      if(age>30){if(!confirm(age+'分前のデータです。続けますか？'))return;}
-      doFill(d);
+      if(!text){alert('クリップボードにデータがありません。\\nアシスタント画面で転記ボタンを押してから再実行してください。');return;}
+      runFill(text);
     }).catch(function(){
-      var text=prompt('クリップボード読み取りが拒否されました。\\nアシスタント画面からコピーしたJSONをここに貼り付けてください：');
+      var text=prompt('アシスタント画面からコピーしたデータをここに貼り付けてください：');
       if(!text)return;
-      var d;try{d=JSON.parse(text);}catch(e){alert('JSONの解析に失敗しました。');return;}
-      doFill(d);
+      runFill(text);
     });
   }else{
     var text=prompt('転記データをここに貼り付けてください：');
     if(!text)return;
-    var d;try{d=JSON.parse(text);}catch(e){alert('解析失敗');return;}
-    doFill(d);
+    runFill(text);
   }
 })();`;
 }
@@ -2747,8 +2756,9 @@ async function doTransfer() {
           <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
             <strong>次の手順：</strong><br>
             1. カイポケで対象利用者の訪問看護記録ページを開く<br>
-            2. ブックマークバーの「📋 カイポケ転記ツール」をクリック<br>
-            3. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
+            2. 保存したブックマーク「📋 カイポケ転記ツール」をタップ<br>
+            3. <span style="color:#b45309"><strong>貼り付けダイアログが表示されたらペースト → OK</strong></span><br>
+            4. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
           </div>
         </div>
       </div>`;
