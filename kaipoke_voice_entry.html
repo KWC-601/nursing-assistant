@@ -2706,8 +2706,6 @@ function buildWriteBookmarkletCode() {
     }
     alert(msg);
   }
-  /* iOSはclipboard.readText()がペーストポップアップを出すためスキップしprompt()を使用 */
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   function runFill(text){
     var d;
     try{d=JSON.parse(text);}catch(e){alert('データの形式が正しくありません。\\nアシスタントで転記ボタンを押してから再実行してください。');return;}
@@ -2716,23 +2714,15 @@ function buildWriteBookmarkletCode() {
     if(age>30){if(!confirm(age+'分前のデータです。続けますか？'))return;}
     doFill(d);
   }
-  if(isIOS){
-    var text=prompt('アシスタントの転記ボタンを押した後、ここに貼り付けてください：');
-    if(!text)return;
-    runFill(text);
-  }else if(navigator.clipboard&&navigator.clipboard.readText){
+  if(navigator.clipboard&&navigator.clipboard.readText){
     navigator.clipboard.readText().then(function(text){
-      if(!text){alert('クリップボードにデータがありません。\\nアシスタント画面で転記ボタンを押してから再実行してください。');return;}
+      if(!text){alert('クリップボードにデータがありません。\\nアシスタントで転記ボタンを押してから再実行してください。');return;}
       runFill(text);
     }).catch(function(){
-      var text=prompt('アシスタント画面からコピーしたデータをここに貼り付けてください：');
-      if(!text)return;
-      runFill(text);
+      alert('クリップボードの読み取りが拒否されました。\\nブラウザの設定でクリップボードのアクセスを許可してから再実行してください。');
     });
   }else{
-    var text=prompt('転記データをここに貼り付けてください：');
-    if(!text)return;
-    runFill(text);
+    alert('このブラウザはクリップボード読み取りに対応していません。');
   }
 })();`;
 }
