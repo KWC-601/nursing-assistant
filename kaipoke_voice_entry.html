@@ -1724,7 +1724,7 @@ function buildBookmarkletCode() {
     'visitDate:vD,visitTimeStart:vTS,visitTimeEnd:vTE,pageTitle:document.title,url:location.href};' +
     'var j=JSON.stringify(d);' +
     'var b64=btoa(unescape(encodeURIComponent(j)));' +
-    'location.href=\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64;' +
+    'window.open(\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64,\'nursing-assistant\');' +
     '})();';
 }
 
@@ -1793,6 +1793,11 @@ function checkHashData() {
     if (data && data._src === 'kaipoke') {
       history.replaceState(null, '', location.pathname + location.search);
       showKaipokeResult(data);
+      const inf = [];
+      if (data.user) inf.push('利用者：' + data.user);
+      if (data.visitDate) inf.push('訪問日：' + data.visitDate);
+      if (data.visitTimeStart) inf.push('時間：' + data.visitTimeStart + (data.visitTimeEnd ? '〜' + data.visitTimeEnd : ''));
+      alert('✅ 読み取り完了！\n' + (inf.length ? inf.join('\n') : '') + '\n\n音声を録音・アップロードして記録を作成してください。');
     }
   } catch(e) {
     console.warn('checkHashData error:', e);
