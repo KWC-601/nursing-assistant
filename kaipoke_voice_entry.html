@@ -2764,7 +2764,7 @@ function copyWriteBookmarkletCode() {
   });
 }
 
-async function doTransfer() {
+function doTransfer() {
   const result = document.getElementById('transferResult');
 
   // 転記するデータを収集
@@ -2797,45 +2797,42 @@ async function doTransfer() {
     date:   document.getElementById('input_date').value.trim()
   };
 
-  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const json = JSON.stringify(data);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
 
-  // カイポケURLが既知の場合はURLハッシュ経由で転記ページを開く（クリップボード不要）
+  // クリップボードにコピー（サイレント・fire-and-forget）
+  try { if (navigator.clipboard) navigator.clipboard.writeText(json).catch(()=>{}); } catch(e) {}
+
+  // カイポケURLが既知の場合はURLハッシュ付きでカイポケページを開く
+  // （転記ツールブックマークがハッシュを読み取り自動入力する）
   if (kaipokeSourceUrl) {
-    const transferUrl = kaipokeSourceUrl + '#wd=' + b64;
-    window.open(transferUrl, 'kaipoke_write');
-    result.innerHTML = `
-      <div class="alert alert-success" style="font-size:13px;margin-top:16px">
-        <span style="font-size:22px">✅</span>
-        <div>
-          <strong style="font-size:14px">カイポケのページを開きました！</strong><br>
-          <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
-          <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
-            <strong>次の手順：</strong><br>
-            1. 開いたカイポケのページで「📋 カイポケ転記ツール」ブックマークをタップ<br>
-            2. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
-          </div>
-        </div>
-      </div>`;
-  } else {
-    // カイポケURLが不明な場合はクリップボードにコピー
-    try { await navigator.clipboard.writeText(JSON.stringify(data)); } catch(e) {}
-    result.innerHTML = `
-      <div class="alert alert-success" style="font-size:13px;margin-top:16px">
-        <span style="font-size:22px">📋</span>
-        <div>
-          <strong style="font-size:14px">転記データをコピーしました！</strong><br>
-          <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
-          <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
-            <strong>次の手順：</strong><br>
-            1. カイポケで対象利用者の訪問看護記録ページを開く<br>
-            2. 「📋 カイポケ転記ツール」ブックマークをタップ<br>
-            3. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
-          </div>
-        </div>
-      </div>`;
+    try { window.open(kaipokeSourceUrl + '#wd=' + b64, 'kaipoke_window'); } catch(e) {}
   }
+
+  result.innerHTML = `
+    <div class="alert alert-success" style="font-size:13px;margin-top:16px">
+      <span style="font-size:22px">✅</span>
+      <div>
+        <strong style="font-size:14px">転記完了！</strong><br>
+        <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
+        <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
+          ${kaipokeSourceUrl
+            ? 'カイポケのページが開きました。<br>「📋 カイポケ転記ツール」ブックマークをタップして自動入力 → 「<strong>保存する</strong>」を押してください。'
+            : 'カイポケで対象利用者の訪問看護記録ページを開き、<br>「📋 カイポケ転記ツール」ブックマークをタップして自動入力 → 「<strong>保存する</strong>」を押してください。'
+          }
+        </div>
+      </div>
+    </div>`;
+
   setStatus('✅ 転記準備完了 — カイポケで転記ツールを実行してください', 'green');
   fixWriteBookmarkletHref();
+
+  // 転記後もボタンを再度押せるようにチェックボックスを維持
+  ['fchk1','fchk2','fchk3'].forEach(id => {
+    document.getElementById(id).checked = true;
+    document.getElementById('lbl_'+id).classList.add('checked');
+  });
+  checkTransferReady();
 }
 
 async function fileToBase64(file) {
