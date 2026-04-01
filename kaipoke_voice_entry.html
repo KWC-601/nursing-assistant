@@ -1093,6 +1093,7 @@ let EXISTING = {
 // ===== 状態 =====
 let audioFile = null, selectedStaffs = [], hasOverwrite = false, confirmedNames = {};
 let kaipokeSourceUrl = ''; // 読み取り時のカイポケURL（転記先として使用）
+let lastTransferJson = null; // 最後に転記したJSONデータ（書き込みブックマークがpostMessageで取得）
 
 // ===== 初期化 =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -1150,6 +1151,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // URLハッシュにカイポケデータがあれば自動読み込み（初回 + 再読み取り時）
   checkHashData();
   window.addEventListener('hashchange', checkHashData);
+  // 書き込みブックマークからのpostMessageリクエストに応答
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'requestTransferData') {
+      var json = lastTransferJson || sessionStorage.getItem('lastTransferJson');
+      try { e.source.postMessage({type: 'transferData', json: json || null}, e.origin); } catch(ex) {}
+    }
+  });
   // 保存済みAPIキーを自動反映
   applyStoredApiKeys();
   // 保存済みスタッフリストを反映
@@ -2720,32 +2728,35 @@ function buildWriteBookmarkletCode() {
     if(location.hash.startsWith('#wd='))history.replaceState(null,'',location.pathname+location.search);
     doFill(d);
   }
-  /* まずURLハッシュからデータを取得（クリップボード不要） */
-  var hash=location.hash;
-  if(hash.startsWith('#wd=')){
-    try{
-      var json=decodeURIComponent(escape(atob(hash.slice(4))));
-      runFill(json);
-    }catch(e){alert('URLデータの読み取りに失敗しました。アシスタントで転記ボタンを押し直してください。');}
+  /* アシスタントページにpostMessageでデータを要求（クリップボード不要・iOS対応） */
+  var assistantOrigin='https://kwc-601.github.io';
+  var assistantWin=window.open('','nursing-assistant');
+  if(!assistantWin||assistantWin===window){
+    alert('アシスタントのページが開いていません。\\n先にアシスタントで転記ボタンを押してください。');
     return;
   }
-  /* フォールバック：iOSはclipboardを読まずメッセージのみ表示 */
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(isIOS){
-    alert('アシスタントの転記ボタンを押してから、このブックマークを実行してください。\\n（アシスタントで転記ボタンを押すとカイポケのページが自動で開きます）');
+  var received=false;
+  function onMsg(e){
+    if(!e.data||e.data.type!=='transferData')return;
+    received=true;
+    window.removeEventListener('message',onMsg);
+    if(e.data.json){
+      runFill(e.data.json);
+    }else{
+      alert('転記データがありません。\\nアシスタントで転記ボタンを押してから再実行してください。');
+    }
+  }
+  window.addEventListener('message',onMsg);
+  try{assistantWin.postMessage({type:'requestTransferData'},assistantOrigin);}catch(ex){
+    alert('アシスタントとの通信に失敗しました。\\n再度試してください。');
     return;
   }
-  /* PCはクリップボードから取得 */
-  if(navigator.clipboard&&navigator.clipboard.readText){
-    navigator.clipboard.readText().then(function(text){
-      if(!text){alert('クリップボードにデータがありません。\\nアシスタントで転記ボタンを押してから再実行してください。');return;}
-      runFill(text);
-    }).catch(function(){
-      alert('データが見つかりません。\\nアシスタントで転記ボタンを押してからこのブックマークを実行してください。');
-    });
-  }else{
-    alert('データが見つかりません。\\nアシスタントで転記ボタンを押してから再実行してください。');
-  }
+  setTimeout(function(){
+    if(!received){
+      window.removeEventListener('message',onMsg);
+      alert('転記データが見つかりませんでした。\\nアシスタントで転記ボタンを押してから再実行してください。');
+    }
+  },4000);
 })();`;
 }
 
@@ -2800,14 +2811,12 @@ function doTransfer() {
   const json = JSON.stringify(data);
   const b64 = btoa(unescape(encodeURIComponent(json)));
 
-  // クリップボードにコピー（サイレント・fire-and-forget）
-  try { if (navigator.clipboard) navigator.clipboard.writeText(json).catch(()=>{}); } catch(e) {}
+  // データを保存（書き込みブックマークがpostMessageで取得する）
+  lastTransferJson = json;
+  try { sessionStorage.setItem('lastTransferJson', json); } catch(e) {}
 
-  // カイポケURLが既知の場合はURLハッシュ付きでカイポケページを開く
-  // （転記ツールブックマークがハッシュを読み取り自動入力する）
-  if (kaipokeSourceUrl) {
-    try { window.open(kaipokeSourceUrl + '#wd=' + b64, 'kaipoke_window'); } catch(e) {}
-  }
+  // クリップボードにもコピー（PCのフォールバック用・サイレント）
+  try { if (navigator.clipboard) navigator.clipboard.writeText(json).catch(()=>{}); } catch(e) {}
 
   result.innerHTML = `
     <div class="alert alert-success" style="font-size:13px;margin-top:16px">
@@ -2816,10 +2825,7 @@ function doTransfer() {
         <strong style="font-size:14px">転記完了！</strong><br>
         <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
         <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
-          ${kaipokeSourceUrl
-            ? 'カイポケのページが開きました。<br>「📋 カイポケ転記ツール」ブックマークをタップして自動入力 → 「<strong>保存する</strong>」を押してください。'
-            : 'カイポケで対象利用者の訪問看護記録ページを開き、<br>「📋 カイポケ転記ツール」ブックマークをタップして自動入力 → 「<strong>保存する</strong>」を押してください。'
-          }
+          カイポケで対象利用者の訪問看護記録ページを開き、<br>「📋 カイポケ転記ツール」ブックマークをタップして自動入力 → 「<strong>保存する</strong>」を押してください。
         </div>
       </div>
     </div>`;
