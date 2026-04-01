@@ -1092,6 +1092,7 @@ let EXISTING = {
 
 // ===== 状態 =====
 let audioFile = null, selectedStaffs = [], hasOverwrite = false, confirmedNames = {};
+let kaipokeSourceUrl = ''; // 読み取り時のカイポケURL（転記先として使用）
 
 // ===== 初期化 =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -1900,6 +1901,9 @@ async function fetchFromKaipoke() {
 }
 
 function applyKaipokeData(data) {
+  // カイポケURLを保存（転記時に使用）
+  if (data.url) kaipokeSourceUrl = data.url.split('#')[0]; // ハッシュ部分は除去
+
   // EXISTINGを更新
   EXISTING.temperature1    = data.temp  || '';
   EXISTING.pressureHigh1   = data.bpH   || '';
@@ -2712,17 +2716,35 @@ function buildWriteBookmarkletCode() {
     if(!d._src||d._src!=='kaipoke_transfer'){alert('転記データではありません。\\nアシスタントで転記ボタンを押してから実行してください。');return;}
     var age=Math.floor((Date.now()-(d._ts||0))/60000);
     if(age>30){if(!confirm(age+'分前のデータです。続けますか？'))return;}
+    /* URLハッシュをクリア */
+    if(location.hash.startsWith('#wd='))history.replaceState(null,'',location.pathname+location.search);
     doFill(d);
   }
+  /* まずURLハッシュからデータを取得（クリップボード不要） */
+  var hash=location.hash;
+  if(hash.startsWith('#wd=')){
+    try{
+      var json=decodeURIComponent(escape(atob(hash.slice(4))));
+      runFill(json);
+    }catch(e){alert('URLデータの読み取りに失敗しました。アシスタントで転記ボタンを押し直してください。');}
+    return;
+  }
+  /* フォールバック：iOSはclipboardを読まずメッセージのみ表示 */
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isIOS){
+    alert('アシスタントの転記ボタンを押してから、このブックマークを実行してください。\\n（アシスタントで転記ボタンを押すとカイポケのページが自動で開きます）');
+    return;
+  }
+  /* PCはクリップボードから取得 */
   if(navigator.clipboard&&navigator.clipboard.readText){
     navigator.clipboard.readText().then(function(text){
       if(!text){alert('クリップボードにデータがありません。\\nアシスタントで転記ボタンを押してから再実行してください。');return;}
       runFill(text);
     }).catch(function(){
-      alert('クリップボードの読み取りが拒否されました。\\nブラウザの設定でクリップボードのアクセスを許可してから再実行してください。');
+      alert('データが見つかりません。\\nアシスタントで転記ボタンを押してからこのブックマークを実行してください。');
     });
   }else{
-    alert('このブラウザはクリップボード読み取りに対応していません。');
+    alert('データが見つかりません。\\nアシスタントで転記ボタンを押してから再実行してください。');
   }
 })();`;
 }
@@ -2775,8 +2797,28 @@ async function doTransfer() {
     date:   document.getElementById('input_date').value.trim()
   };
 
-  try {
-    await navigator.clipboard.writeText(JSON.stringify(data));
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+
+  // カイポケURLが既知の場合はURLハッシュ経由で転記ページを開く（クリップボード不要）
+  if (kaipokeSourceUrl) {
+    const transferUrl = kaipokeSourceUrl + '#wd=' + b64;
+    window.open(transferUrl, 'kaipoke_write');
+    result.innerHTML = `
+      <div class="alert alert-success" style="font-size:13px;margin-top:16px">
+        <span style="font-size:22px">✅</span>
+        <div>
+          <strong style="font-size:14px">カイポケのページを開きました！</strong><br>
+          <span style="font-size:12px;opacity:.9">記録者：<strong>${selectedStaffs.join('・')}</strong>　利用者：<strong>${data.user}</strong>　日時：<strong>${data.date}</strong></span>
+          <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
+            <strong>次の手順：</strong><br>
+            1. 開いたカイポケのページで「📋 カイポケ転記ツール」ブックマークをタップ<br>
+            2. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // カイポケURLが不明な場合はクリップボードにコピー
+    try { await navigator.clipboard.writeText(JSON.stringify(data)); } catch(e) {}
     result.innerHTML = `
       <div class="alert alert-success" style="font-size:13px;margin-top:16px">
         <span style="font-size:22px">📋</span>
@@ -2786,18 +2828,14 @@ async function doTransfer() {
           <div style="margin-top:10px;background:rgba(255,255,255,.6);border-radius:8px;padding:10px;font-size:12px;line-height:2">
             <strong>次の手順：</strong><br>
             1. カイポケで対象利用者の訪問看護記録ページを開く<br>
-            2. 保存したブックマーク「📋 カイポケ転記ツール」をタップ<br>
-            3. <span style="color:#b45309"><strong>貼り付けダイアログが表示されたらペースト → OK</strong></span><br>
-            4. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
+            2. 「📋 カイポケ転記ツール」ブックマークをタップ<br>
+            3. 自動入力されたら内容確認 → 「<strong>保存する</strong>」を押す
           </div>
         </div>
       </div>`;
-    setStatus('📋 転記データコピー済み — カイポケで転記ツールを実行してください', 'green');
-    // ブックマークレットリンクも更新
-    fixWriteBookmarkletHref();
-  } catch(e) {
-    result.innerHTML = `<div class="alert alert-danger">❌ クリップボードへのコピーに失敗しました: ${e.message}</div>`;
   }
+  setStatus('✅ 転記準備完了 — カイポケで転記ツールを実行してください', 'green');
+  fixWriteBookmarkletHref();
 }
 
 async function fileToBase64(file) {
