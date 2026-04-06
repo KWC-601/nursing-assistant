@@ -1555,6 +1555,16 @@ function getAudioMimeType(file) {
   return 'audio/mpeg';
 }
 
+// ===== Whisper 誤認識の自動修正 =====
+function fixTranscript(text) {
+  const fixes = [
+    // 腸骨稜の誤認識パターン
+    [/腸骨[瘤量竜流留龍陵菱凌]/g, '腸骨稜'],
+  ];
+  fixes.forEach(([pattern, correct]) => { text = text.replace(pattern, correct); });
+  return text;
+}
+
 function showAnalysisError(msg) {
   addLog('❌ ' + msg, true);
   const errDiv = document.createElement('div');
@@ -1618,7 +1628,7 @@ async function analyzeAudio() {
       if (!whisperRes.ok || whisperData.error) {
         throw new Error(whisperData.error?.message || `Whisper APIエラー ${whisperRes.status}`);
       }
-      const t = whisperData.text || '';
+      const t = fixTranscript(whisperData.text || '');
       transcripts.push(t);
       addLog(`✅ 文字起こし完了${label}：「${t.slice(0,60)}${t.length>60?'…':''}」`);
     } catch(e) {
