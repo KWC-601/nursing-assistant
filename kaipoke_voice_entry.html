@@ -595,13 +595,13 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
         </div>
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
           <div style="font-size:36px;margin-bottom:10px">🎵</div>
-          <div style="font-size:15px;font-weight:600;margin-bottom:6px">クリックして音声ファイルを選択</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px">クリックして音声ファイルを選択（最大3ファイル）</div>
           <p style="color:var(--text2);font-size:12px;margin-top:4px">またはここにドラッグ＆ドロップ</p>
           <p style="color:var(--text2);font-size:12px;margin-top:4px">対応形式: m4a / mp3 / wav / webm / ogg</p>
         </div>
-        <input type="file" id="fileInput" accept="audio/*,.m4a,.mp3,.wav,.aac,.flac,.ogg,.webm,audio/mp4,audio/x-m4a" onchange="onFileSelect(this)" style="display:none">
+        <input type="file" id="fileInput" accept="audio/*,.m4a,.mp3,.wav,.aac,.flac,.ogg,.webm,audio/mp4,audio/x-m4a" onchange="onFileSelect(this)" multiple style="display:none">
         <div id="fileInfo" style="display:none;margin-top:12px">
-          <div class="alert alert-success"><span>✅</span><span id="fileName"></span></div>
+          <div id="fileList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
           <button class="btn btn-primary btn-lg btn-full" onclick="analyzeAudio()">🔍 文字起こし・解析を開始</button>
         </div>
       </div>
@@ -1140,7 +1140,7 @@ let EXISTING = {
 };
 
 // ===== 状態 =====
-let audioFile = null, selectedStaffs = [], hasOverwrite = false, confirmedNames = {};
+let audioFiles = [], selectedStaffs = [], hasOverwrite = false, confirmedNames = {};
 let kaipokeSourceUrl = ''; // 読み取り時のカイポケURL（転記先として使用）
 let lastTransferJson = null; // 最後に転記したJSONデータ（書き込みブックマークがpostMessageで取得）
 
@@ -1174,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const zone = document.getElementById('uploadZone');
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files.length) setFiles(Array.from(e.dataTransfer.files)); });
 
   // 日時プルダウン初期化
   const hStart = document.getElementById('input_time_h_start');
@@ -1329,12 +1329,22 @@ function goStep(n) {
 }
 
 // ===== ファイル =====
-function onFileSelect(input) { if (input.files[0]) setFile(input.files[0]); }
-function setFile(f) {
-  audioFile = f;
-  document.getElementById('fileName').textContent = `${f.name}（${(f.size/1024/1024).toFixed(1)} MB）`;
+function onFileSelect(input) { if (input.files.length) setFiles(Array.from(input.files)); }
+function setFiles(files) {
+  const audioTypes = /\.(m4a|mp3|wav|aac|flac|ogg|webm)$/i;
+  files = files.filter(f => f.type.startsWith('audio/') || audioTypes.test(f.name));
+  if (!files.length) { alert('音声ファイルを選択してください'); return; }
+  if (files.length > 3) { alert('一度に選択できるのは3ファイルまでです。最初の3つを使用します。'); files = files.slice(0, 3); }
+  audioFiles = files;
+  const list = document.getElementById('fileList');
+  list.innerHTML = audioFiles.map((f, i) =>
+    `<div class="alert alert-success" style="padding:8px 12px">
+      <span>🎵</span>
+      <span style="flex:1">${i+1}. ${f.name}（${(f.size/1024/1024).toFixed(1)} MB）</span>
+    </div>`
+  ).join('');
   document.getElementById('fileInfo').style.display = 'block';
-  setStatus(`ファイル選択済み: ${f.name}`);
+  setStatus(`${audioFiles.length}ファイル選択済み`);
 }
 function toggleKey() { const i = document.getElementById('apiKey'); i.type = i.type==='password'?'text':'password'; }
 function toggleOpenaiKey() { const i = document.getElementById('openaiKey'); i.type = i.type==='password'?'text':'password'; }
@@ -1500,53 +1510,57 @@ async function analyzeAudio() {
   const claudeKey = document.getElementById('apiKey').value.trim();
   if (!openaiKey) { alert('OpenAI APIキーを入力してください（音声文字起こし用）'); return; }
   if (!claudeKey) { alert('Claude APIキーを入力してください（SOAP生成用）'); return; }
-  if (!audioFile) { alert('音声ファイルを選択してください'); return; }
+  if (!audioFiles.length) { alert('音声ファイルを選択してください'); return; }
 
   goStep(2); document.getElementById('progressLog').innerHTML = '';
 
-  // ===== STEP 1: Whisper API で文字起こし =====
-  addLog(`🎙️ Whisper APIで文字起こし中...（${audioFile.name} / ${(audioFile.size/1024).toFixed(0)}KB）`);
-  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🎙️ 音声を文字起こし中<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">${audioFile.name}（${(audioFile.size/1024).toFixed(0)}KB）をWhisper APIに送信中</span></div>`);
-  let transcript = '';
-  try {
-    const formData = new FormData();
-    formData.append('file', audioFile, audioFile.name);
-    formData.append('model', 'whisper-1');
-    formData.append('language', 'ja');
-    // 医療・看護用語ヒント（Whisper の認識精度向上）
-    formData.append('prompt',
-      '訪問看護の記録。血圧、脈拍、サチュレーション、SpO2、体温、呼吸数、血糖値、体重。' +
-      '排便、排尿、失禁、便秘、下痢、残尿、腹部膨満。' +
-      'ソルデム3A、点滴、インスリン、ワーファリン、エルネオパ、アムロジピン、フロセミド、' +
-      'ランソプラゾール、酸化マグネシウム、メトホルミン、アリセプト、メマリー。' +
-      '浮腫、褥瘡、拘縮、嚥下、誤嚥、喀痰、吸引。' +
-      '認知症、せん妄、帰宅願望、易怒性、幻視、幻聴、意識レベル、JCS、GCS。' +
-      'ストーマ、バルーンカテーテル、胃瘻、PEG、気管切開、在宅酸素、HOT。' +
-      'SOAP、観察記録、ケア実施、清拭、入浴介助、陰部洗浄。'
-    );
+  // ===== STEP 1: Whisper API で文字起こし（複数ファイルを順番に処理）=====
+  const whisperPrompt =
+    '訪問看護の記録。血圧、脈拍、サチュレーション、SpO2、体温、呼吸数、血糖値、体重。' +
+    '排便、排尿、失禁、便秘、下痢、残尿、腹部膨満。' +
+    'ソルデム3A、点滴、インスリン、ワーファリン、エルネオパ、アムロジピン、フロセミド、' +
+    'ランソプラゾール、酸化マグネシウム、メトホルミン、アリセプト、メマリー。' +
+    '浮腫、褥瘡、拘縮、嚥下、誤嚥、喀痰、吸引。' +
+    '認知症、せん妄、帰宅願望、易怒性、幻視、幻聴、意識レベル、JCS、GCS。' +
+    'ストーマ、バルーンカテーテル、胃瘻、PEG、気管切開、在宅酸素、HOT。' +
+    'SOAP、観察記録、ケア実施、清拭、入浴介助、陰部洗浄。';
 
-    const whisperController = new AbortController();
-    const whisperTimeout = setTimeout(() => whisperController.abort(), 120000);
+  const transcripts = [];
+  for (let i = 0; i < audioFiles.length; i++) {
+    const f = audioFiles[i];
+    const label = audioFiles.length > 1 ? `（${i+1}/${audioFiles.length}）` : '';
+    addLog(`🎙️ 文字起こし中${label}…（${f.name} / ${(f.size/1024).toFixed(0)}KB）`);
+    showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🎙️ 音声を文字起こし中${label}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">${f.name} をWhisper APIに送信中</span></div>`);
+    try {
+      const formData = new FormData();
+      formData.append('file', f, f.name);
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'ja');
+      formData.append('prompt', whisperPrompt);
 
-    const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      signal: whisperController.signal,
-      headers: { 'Authorization': `Bearer ${openaiKey}` },
-      body: formData
-    });
-    clearTimeout(whisperTimeout);
-
-    const whisperData = await whisperRes.json();
-    if (!whisperRes.ok || whisperData.error) {
-      throw new Error(whisperData.error?.message || `Whisper APIエラー ${whisperRes.status}`);
+      const whisperController = new AbortController();
+      const whisperTimeout = setTimeout(() => whisperController.abort(), 120000);
+      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        signal: whisperController.signal,
+        headers: { 'Authorization': `Bearer ${openaiKey}` },
+        body: formData
+      });
+      clearTimeout(whisperTimeout);
+      const whisperData = await whisperRes.json();
+      if (!whisperRes.ok || whisperData.error) {
+        throw new Error(whisperData.error?.message || `Whisper APIエラー ${whisperRes.status}`);
+      }
+      const t = whisperData.text || '';
+      transcripts.push(t);
+      addLog(`✅ 文字起こし完了${label}：「${t.slice(0,60)}${t.length>60?'…':''}」`);
+    } catch(e) {
+      const msg = e.name === 'AbortError' ? '⏱ タイムアウト（120秒）：音声ファイルが大きすぎます' : e.message;
+      showAnalysisError(`【Whisper API】ファイル${i+1}: ${msg}`);
+      return;
     }
-    transcript = whisperData.text || '';
-    addLog(`✅ 文字起こし完了：「${transcript.slice(0,60)}${transcript.length>60?'…':''}」`);
-  } catch(e) {
-    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（120秒）：音声ファイルが大きすぎます' : e.message;
-    showAnalysisError('【Whisper API】 ' + msg);
-    return;
   }
+  const transcript = transcripts.join('\n');
 
   // ===== STEP 2: Claude API で SOAP 生成 =====
   addLog('🤖 Claude APIでSOAP形式に変換中...');
