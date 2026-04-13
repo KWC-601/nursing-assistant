@@ -533,17 +533,17 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
         </div>
       </div>
 
-      <!-- 手動入力カード -->
-      <div onclick="selectInputMode('manual')"
+      <!-- 写真・PDF入力カード -->
+      <div onclick="selectInputMode('photo')"
         style="cursor:pointer;background:var(--surface);border:2.5px solid var(--green);border-radius:14px;padding:28px 20px;text-align:center;transition:all .2s;box-shadow:var(--shadow)"
         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'"
         onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
-        <div style="font-size:48px;margin-bottom:12px">✏️</div>
-        <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:8px">手動入力</div>
+        <div style="font-size:48px;margin-bottom:12px">📷</div>
+        <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:8px">写真・PDF入力</div>
         <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">
-          Googleドキュメント等で文字起こし済みの<br>
-          テキストを貼り付け<br>
-          → ClaudeがSOAPに変換
+          手書きメモや印刷物を撮影／PDF化<br>
+          ClaudeのVision機能で読み取り<br>
+          → SOAPに自動変換
         </div>
         <div style="background:var(--green-light);border-radius:8px;padding:8px;font-size:11px;color:var(--green);font-weight:600">
           Claude API のみ使用
@@ -652,14 +652,14 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
     </div>
   </div>
 
-  <!-- ===== 手動入力セクション ===== -->
-  <div id="manualInputSection" style="display:none">
+  <!-- ===== 写真・PDF入力セクション ===== -->
+  <div id="photoInputSection" style="display:none">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <button onclick="backToModeSelect()" class="btn btn-outline" style="padding:7px 14px;font-size:12px">← 選び直す</button>
-      <div style="font-size:15px;font-weight:700;color:var(--green)">✏️ 手動入力</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green)">📷 写真・PDF入力</div>
     </div>
 
-    <!-- 対象者情報バナー（音声セクションと同じ要素を参照・共通） -->
+    <!-- 対象者情報バナー -->
     <div style="background:linear-gradient(135deg,#0c4a6e,#0e7490);border-radius:10px;padding:10px 16px;margin-bottom:12px;color:#fff;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px">
         <span style="opacity:.75">🏥 利用者</span>
@@ -675,24 +675,91 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
       </div>
     </div>
 
-    <!-- APIキーステータス（管理者設定から自動反映） -->
-    <div id="manualApiStatus" style="margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px"></div>
-    <!-- 非表示APIキーフィールド（JS用） -->
-    <div style="display:none">
-      <input type="password" id="apiKeyManual">
-    </div>
+    <!-- APIキーステータス -->
+    <div id="photoApiStatus" style="margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px"></div>
+    <div style="display:none"><input type="password" id="apiKeyManual"></div>
 
     <div class="card">
-      <div class="card-header"><div class="icon">✏️</div><h2>文字起こしテキストを貼り付け</h2></div>
+      <div class="card-header"><div class="icon">📷</div><h2>写真・PDFをアップロード（最大3枚）</h2></div>
       <div class="card-body">
         <div style="background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#78350f;line-height:1.8">
-          ✏️ Googleドキュメント等で文字起こしたテキストを貼り付けてください。<br>
-          <strong>氏名・訪問日・担当者名・事業所名は除いて</strong>入力してください。
+          📷 手書きメモや帳票を撮影してアップロードしてください。<br>
+          <strong>氏名・住所など個人を特定できる情報が写り込まないよう</strong>注意してください。
         </div>
-        <textarea id="directText" class="form-input" rows="8"
-          placeholder="【入力例 — 氏名・日付・担当者名は含めない】&#10;&#10;体温36.7、血圧130/63、脈拍70、SpO2 98&#10;「親に会いたい、家に帰りたい」と訴えあり。終始視線は下向き。&#10;慣れない環境下で帰宅願望あり。服薬確認済み。"></textarea>
-        <div style="margin-top:12px">
-          <button class="btn btn-primary btn-lg btn-full" onclick="analyzeText()">🔍 SOAP解析を開始</button>
+
+        <!-- 3つの個別アップロード枠 -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <!-- ページ1 -->
+          <div id="pslot0" onclick="document.getElementById('photoInput0').click()"
+            style="display:flex;align-items:center;gap:12px;border:2px dashed var(--green);border-radius:10px;padding:12px 16px;cursor:pointer;transition:background .2s;background:var(--green-light)"
+            ondragover="event.preventDefault();this.style.background='#dcfce7'"
+            ondragleave="this.style.background='var(--green-light)'"
+            ondrop="event.preventDefault();this.style.background='var(--green-light)';onPhotoSlotDrop(event,0)">
+            <div style="font-size:28px;flex-shrink:0">📄</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:2px">ページ 1</div>
+              <div id="pslotName0" style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">タップして選択 または ドラッグ＆ドロップ</div>
+            </div>
+            <div id="pslotPreview0" style="display:none;width:48px;height:48px;border-radius:6px;overflow:hidden;flex-shrink:0"><img id="pslotImg0" style="width:100%;height:100%;object-fit:cover"></div>
+            <div id="pslotBadge0" style="display:none;font-size:18px">✅</div>
+            <button id="pslotClear0" onclick="event.stopPropagation();clearPhotoSlot(0)" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
+          </div>
+          <input type="file" id="photoInput0" accept="image/*,.pdf,application/pdf" onchange="onPhotoSlotSelect(this,0)" style="display:none">
+
+          <!-- ページ2 -->
+          <div id="pslot1" onclick="document.getElementById('photoInput1').click()"
+            style="display:flex;align-items:center;gap:12px;border:2px dashed var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;transition:background .2s;background:var(--surface2)"
+            ondragover="event.preventDefault();this.style.background='#dcfce7'"
+            ondragleave="this.style.background='var(--surface2)'"
+            ondrop="event.preventDefault();this.style.background='var(--surface2)';onPhotoSlotDrop(event,1)">
+            <div style="font-size:28px;flex-shrink:0">📄</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:2px">ページ 2 <span style="font-weight:400;font-size:11px">（任意）</span></div>
+              <div id="pslotName1" style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">タップして選択 または ドラッグ＆ドロップ</div>
+            </div>
+            <div id="pslotPreview1" style="display:none;width:48px;height:48px;border-radius:6px;overflow:hidden;flex-shrink:0"><img id="pslotImg1" style="width:100%;height:100%;object-fit:cover"></div>
+            <div id="pslotBadge1" style="display:none;font-size:18px">✅</div>
+            <button id="pslotClear1" onclick="event.stopPropagation();clearPhotoSlot(1)" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
+          </div>
+          <input type="file" id="photoInput1" accept="image/*,.pdf,application/pdf" onchange="onPhotoSlotSelect(this,1)" style="display:none">
+
+          <!-- ページ3 -->
+          <div id="pslot2" onclick="document.getElementById('photoInput2').click()"
+            style="display:flex;align-items:center;gap:12px;border:2px dashed var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;transition:background .2s;background:var(--surface2)"
+            ondragover="event.preventDefault();this.style.background='#dcfce7'"
+            ondragleave="this.style.background='var(--surface2)'"
+            ondrop="event.preventDefault();this.style.background='var(--surface2)';onPhotoSlotDrop(event,2)">
+            <div style="font-size:28px;flex-shrink:0">📄</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:2px">ページ 3 <span style="font-weight:400;font-size:11px">（任意）</span></div>
+              <div id="pslotName2" style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">タップして選択 または ドラッグ＆ドロップ</div>
+            </div>
+            <div id="pslotPreview2" style="display:none;width:48px;height:48px;border-radius:6px;overflow:hidden;flex-shrink:0"><img id="pslotImg2" style="width:100%;height:100%;object-fit:cover"></div>
+            <div id="pslotBadge2" style="display:none;font-size:18px">✅</div>
+            <button id="pslotClear2" onclick="event.stopPropagation();clearPhotoSlot(2)" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;flex-shrink:0">✕</button>
+          </div>
+          <input type="file" id="photoInput2" accept="image/*,.pdf,application/pdf" onchange="onPhotoSlotSelect(this,2)" style="display:none">
+        </div>
+
+        <!-- 帳票モード設定（ファイル選択後に表示） -->
+        <div id="chartModePanel" style="display:none;margin-bottom:12px;border:2px solid #a78bfa;border-radius:10px;padding:12px 16px;background:#faf5ff">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
+            <input type="checkbox" id="chartModeToggle" onchange="onChartModeToggle()" style="width:18px;height:18px;accent-color:#7c3aed">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#6d28d9">📋 帳票（チェック表）モード</div>
+              <div style="font-size:11px;color:#7c3aed;margin-top:1px">日付ごとのバイタル・物品チェック表を読み取る場合はONにしてください</div>
+            </div>
+          </label>
+          <div id="chartDateRow" style="display:none;margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:700;color:#6d28d9;white-space:nowrap">読み取る日付：</label>
+            <input type="text" id="chartTargetDate" placeholder="例：4/6　または　4月6日"
+              style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border:1.5px solid #a78bfa;border-radius:8px;font-size:13px;font-family:inherit;color:var(--text)">
+            <div style="font-size:11px;color:#7c3aed">※表の列見出しと同じ形式で入力</div>
+          </div>
+        </div>
+
+        <div id="photoAnalyzeBtn" style="display:none">
+          <button class="btn btn-lg btn-full" onclick="analyzePhoto()" style="background:var(--green);color:#fff;font-size:14px">🔍 読み取り・SOAP解析を開始</button>
         </div>
       </div>
     </div>
@@ -1069,6 +1136,30 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
 
 </div><!-- /main -->
 
+<!-- ========== クロップモーダル ========== -->
+<div id="cropModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:12px">
+  <div style="background:#fff;border-radius:14px;padding:16px;width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:14px;font-weight:700">📐 認識範囲を選択</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">対象部分をドラッグして選択 → 「確定」を押す</div>
+      </div>
+      <button onclick="cancelCrop()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;padding:4px">✕</button>
+    </div>
+    <div id="cropCanvasWrap" style="position:relative;overflow:auto;flex:1;min-height:0;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;display:flex;align-items:center;justify-content:center">
+      <canvas id="cropCanvas" style="cursor:crosshair;display:block;max-width:100%;touch-action:none;user-select:none"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+      <div id="cropHint" style="font-size:11px;color:#64748b">ドラッグで範囲を選択してください</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="resetCropSelection()" class="btn btn-outline" style="font-size:12px;padding:7px 14px">リセット</button>
+        <button onclick="cancelCrop()" class="btn btn-outline" style="font-size:12px;padding:7px 14px">キャンセル</button>
+        <button id="cropConfirmBtn" onclick="confirmCrop()" class="btn btn-primary" style="font-size:12px;padding:7px 16px" disabled>✅ この範囲で確定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="status-bar">
   <span id="statusDot" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>
   <span id="statusText">記録者・利用者・日付を確認してください</span>
@@ -1429,35 +1520,38 @@ function updateTargetBanners() {
 function selectInputMode(mode) {
   document.getElementById('modeSelectSection').style.display = 'none';
   document.getElementById('voiceInputSection').style.display = mode === 'voice' ? 'block' : 'none';
-  document.getElementById('manualInputSection').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('photoInputSection').style.display = mode === 'photo' ? 'block' : 'none';
   updateTargetBanners();
 
-  // APIキーステータス表示
   const openaiKey = localStorage.getItem('saved_openai_key') || '';
   const claudeKey = localStorage.getItem('saved_claude_key') || '';
+
+  const okCss  = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
+  const ngCss  = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
+  const warnCss= 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--orange-light);border:1px solid #fde68a;color:#78350f';
 
   if (mode === 'voice') {
     const bar = document.getElementById('voiceApiStatus');
     if (!bar) return;
     if (openaiKey && claudeKey) {
-      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
+      bar.style.cssText = okCss;
       bar.innerHTML = '<span style="font-size:18px">✅</span><div><div style="font-weight:700">APIキー設定済み</div><div style="font-weight:400;opacity:.8;margin-top:2px">OpenAI（Whisper用）・Claude（SOAP用）どちらも登録されています</div></div>';
     } else if (!openaiKey && !claudeKey) {
-      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
+      bar.style.cssText = ngCss;
       bar.innerHTML = '<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">APIキー未設定</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから OpenAI・Claude のキーを登録してください</div></div>';
     } else {
       const missing = !openaiKey ? 'OpenAI（Whisper用）' : 'Claude（SOAP用）';
-      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--orange-light);border:1px solid #fde68a;color:#78350f';
+      bar.style.cssText = warnCss;
       bar.innerHTML = `<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">${missing} のAPIキーが未設定です</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから登録してください</div></div>`;
     }
-  } else if (mode === 'manual') {
-    const bar = document.getElementById('manualApiStatus');
+  } else if (mode === 'photo') {
+    const bar = document.getElementById('photoApiStatus');
     if (!bar) return;
     if (claudeKey) {
-      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
-      bar.innerHTML = '<span style="font-size:18px">✅</span><div><div style="font-weight:700">APIキー設定済み</div><div style="font-weight:400;opacity:.8;margin-top:2px">Claude APIキー（SOAP生成用）が登録されています</div></div>';
+      bar.style.cssText = okCss;
+      bar.innerHTML = '<span style="font-size:18px">✅</span><div><div style="font-weight:700">APIキー設定済み</div><div style="font-weight:400;opacity:.8;margin-top:2px">Claude APIキー（Vision・SOAP生成用）が登録されています</div></div>';
     } else {
-      bar.style.cssText = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
+      bar.style.cssText = ngCss;
       bar.innerHTML = '<span style="font-size:18px">⚠️</span><div><div style="font-weight:700">Claude APIキー未設定</div><div style="font-weight:400;opacity:.8;margin-top:2px">右上の「⚙️ 管理者設定」→「APIキー」タブから登録してください</div></div>';
     }
   }
@@ -1465,7 +1559,7 @@ function selectInputMode(mode) {
 function backToModeSelect() {
   document.getElementById('modeSelectSection').style.display = 'block';
   document.getElementById('voiceInputSection').style.display = 'none';
-  document.getElementById('manualInputSection').style.display = 'none';
+  document.getElementById('photoInputSection').style.display = 'none';
 }
 
 // ===== ステータス =====
@@ -1560,6 +1654,10 @@ function fixTranscript(text) {
   const fixes = [
     // 腸骨稜の誤認識パターン
     [/腸骨[瘤量竜流留龍陵菱凌]/g, '腸骨稜'],
+    // ソルデム3Aの誤認識パターン（カタカナ表記ゆれ・数字・アルファベット）
+    [/ソルデム\s*[3三さん]\s*[Aaアエーa－ａ]/gi, 'ソルデム3A'],
+    [/ソルデム\s*3$/gm, 'ソルデム3A'],
+    [/ソルテム\s*3\s*[Aa]/gi, 'ソルデム3A'],
   ];
   fixes.forEach(([pattern, correct]) => { text = text.replace(pattern, correct); });
   return text;
@@ -1593,6 +1691,7 @@ async function analyzeAudio() {
   // ===== STEP 1: Whisper API で文字起こし（複数ファイルを順番に処理）=====
   const whisperPrompt =
     '訪問看護の記録。腸骨稜に発赤あり。腸骨稜部の皮膚状態を確認した。' +
+    'ソルデム3Aを500ml点滴にて投与した。ソルデム3Aの残量を確認した。' +
     '血圧、脈拍、サチュレーション、SpO2、体温、呼吸数、血糖値、体重。' +
     '排便、排尿、失禁、便秘、下痢、残尿、腹部膨満。' +
     'ソルデム3A、点滴、インスリン、ワーファリン、エルネオパ、アムロジピン、フロセミド、' +
@@ -1600,7 +1699,8 @@ async function analyzeAudio() {
     '浮腫、褥瘡、拘縮、嚥下、誤嚥、喀痰、吸引。' +
     '認知症、せん妄、帰宅願望、易怒性、幻視、幻聴、意識レベル、JCS、GCS。' +
     'ストーマ、バルーンカテーテル、胃瘻、PEG、気管切開、在宅酸素、HOT。' +
-    'SOAP、観察記録、ケア実施、清拭、入浴介助、陰部洗浄。腸骨稜の状態良好。';
+    'SOAP、観察記録、ケア実施、清拭、入浴介助、陰部洗浄。' +
+    '腸骨稜の状態良好。ソルデム3Aの滴下良好。';
 
   const transcripts = [];
   for (let i = 0; i < activeFiles.length; i++) {
@@ -1675,7 +1775,357 @@ async function analyzeAudio() {
   }
 }
 
-// ===== テキスト解析 =====
+// ===== 写真・PDFスロット =====
+let photoFiles = [null, null, null];
+
+function onPhotoSlotSelect(input, idx) { if (input.files[0]) setPhotoSlot(idx, input.files[0]); }
+function onPhotoSlotDrop(event, idx) { if (event.dataTransfer.files[0]) setPhotoSlot(idx, event.dataTransfer.files[0]); }
+
+let photoCroppedData = [null, null, null]; // クロップ済みbase64（null=クロップなし）
+let cropCurrentIdx = -1;
+let cropImg = null, cropStartX = 0, cropStartY = 0, cropEndX = 0, cropEndY = 0, cropDragging = false, cropSelected = false;
+
+function setPhotoSlot(idx, f) {
+  const allowed = /\.(jpe?g|png|gif|webp|pdf)$/i;
+  if (!f.type.startsWith('image/') && f.type !== 'application/pdf' && !allowed.test(f.name)) {
+    alert('画像（jpg/png/gif/webp）またはPDFを選択してください'); return;
+  }
+  photoFiles[idx] = f;
+  photoCroppedData[idx] = null; // クロップをリセット
+  const slot = document.getElementById('pslot' + idx);
+  slot.style.border = '2px solid var(--green)';
+  slot.style.background = '#f0fdf4';
+  document.getElementById('pslotName' + idx).textContent = `${f.name}（${(f.size/1024/1024).toFixed(1)} MB）`;
+  document.getElementById('pslotName' + idx).style.color = 'var(--green)';
+  document.getElementById('pslotBadge' + idx).style.display = 'block';
+  document.getElementById('pslotClear' + idx).style.display = 'block';
+  // 画像はサムネイル＋範囲指定ボタン表示
+  if (f.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('pslotImg' + idx).src = e.target.result;
+      document.getElementById('pslotPreview' + idx).style.display = 'block';
+    };
+    reader.readAsDataURL(f);
+    // 範囲指定ボタンを追加（まだなければ）
+    if (!document.getElementById('pslotCropBtn' + idx)) {
+      const btn = document.createElement('button');
+      btn.id = 'pslotCropBtn' + idx;
+      btn.textContent = '📐 範囲を指定';
+      btn.style.cssText = 'margin-top:6px;font-size:11px;padding:4px 10px;background:#f0fdf4;border:1px solid var(--green);border-radius:6px;color:var(--green);cursor:pointer;font-family:inherit;font-weight:600';
+      btn.onclick = (e) => { e.stopPropagation(); openCropModal(idx); };
+      // スロットの内側テキスト部に追加
+      const nameEl = document.getElementById('pslotName' + idx);
+      nameEl.parentNode.insertBefore(btn, nameEl.nextSibling);
+    }
+    document.getElementById('pslotCropBtn' + idx).style.display = 'inline-block';
+  } else {
+    document.getElementById('pslotPreview' + idx).style.display = 'none';
+    const b = document.getElementById('pslotCropBtn' + idx);
+    if (b) b.style.display = 'none';
+  }
+  updatePhotoAnalyzeBtn();
+}
+
+function clearPhotoSlot(idx) {
+  photoFiles[idx] = null;
+  photoCroppedData[idx] = null;
+  const isFirst = idx === 0;
+  const slot = document.getElementById('pslot' + idx);
+  slot.style.border = isFirst ? '2px dashed var(--green)' : '2px dashed var(--border)';
+  slot.style.background = isFirst ? 'var(--green-light)' : 'var(--surface2)';
+  document.getElementById('pslotName' + idx).textContent = 'タップして選択 または ドラッグ＆ドロップ';
+  document.getElementById('pslotName' + idx).style.color = 'var(--text2)';
+  document.getElementById('pslotBadge' + idx).style.display = 'none';
+  document.getElementById('pslotClear' + idx).style.display = 'none';
+  document.getElementById('pslotPreview' + idx).style.display = 'none';
+  document.getElementById('photoInput' + idx).value = '';
+  const b = document.getElementById('pslotCropBtn' + idx);
+  if (b) b.style.display = 'none';
+  updatePhotoAnalyzeBtn();
+}
+
+function updatePhotoAnalyzeBtn() {
+  const count = photoFiles.filter(Boolean).length;
+  const show = count > 0;
+  document.getElementById('photoAnalyzeBtn').style.display = show ? 'block' : 'none';
+  document.getElementById('chartModePanel').style.display = show ? 'block' : 'none';
+}
+
+function onChartModeToggle() {
+  const on = document.getElementById('chartModeToggle').checked;
+  const row = document.getElementById('chartDateRow');
+  row.style.display = on ? 'flex' : 'none';
+  const btn = document.querySelector('#photoAnalyzeBtn button');
+  if (btn) btn.textContent = on ? '📋 帳票を読み取り・転記データを生成' : '🔍 読み取り・SOAP解析を開始';
+}
+
+// ===== クロップモーダル =====
+function openCropModal(idx) {
+  cropCurrentIdx = idx;
+  cropSelected = false;
+  cropDragging = false;
+  const modal = document.getElementById('cropModal');
+  modal.style.display = 'flex';
+  document.getElementById('cropConfirmBtn').disabled = true;
+  document.getElementById('cropHint').textContent = 'ドラッグで範囲を選択してください';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    cropImg = new Image();
+    cropImg.onload = () => {
+      const canvas = document.getElementById('cropCanvas');
+      // 表示サイズを画面に合わせてスケール
+      const maxW = Math.min(cropImg.width, window.innerWidth * 0.9 - 32, 660);
+      const scale = maxW / cropImg.width;
+      canvas.width  = cropImg.width;
+      canvas.height = cropImg.height;
+      canvas.style.width  = Math.round(cropImg.width  * scale) + 'px';
+      canvas.style.height = Math.round(cropImg.height * scale) + 'px';
+      setupCropEvents(canvas);  // まずイベント設定（内部でcanvasを置き換える）
+      drawCropCanvas();          // 置き換え後のcanvasに描画
+    };
+    cropImg.src = e.target.result;
+  };
+  reader.readAsDataURL(photoFiles[idx]);
+}
+
+function drawCropCanvas() {
+  const canvas = document.getElementById('cropCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(cropImg, 0, 0);
+  if (cropSelected || cropDragging) {
+    const x = Math.min(cropStartX, cropEndX), y = Math.min(cropStartY, cropEndY);
+    const w = Math.abs(cropEndX - cropStartX),  h = Math.abs(cropEndY - cropStartY);
+    // 暗幕オーバーレイ
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 選択範囲を切り抜いて元画像を表示
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    ctx.drawImage(cropImg, x, y, w, h, x, y, w, h);
+    // 選択枠
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    // コーナーハンドル
+    [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([cx,cy]) => {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.stroke();
+    });
+  }
+}
+
+function getCanvasPos(canvas, clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function setupCropEvents(canvas) {
+  // 既存リスナーをクリア（cloneNodeはDOM属性を引き継ぐがピクセルは引き継がない）
+  const oldW = canvas.width, oldH = canvas.height;
+  const oldSW = canvas.style.width, oldSH = canvas.style.height;
+  canvas.replaceWith(canvas.cloneNode(false));
+  const c = document.getElementById('cropCanvas');
+  // サイズを再設定
+  c.width = oldW; c.height = oldH;
+  c.style.width = oldSW; c.style.height = oldSH;
+  c.style.cursor = 'crosshair'; c.style.display = 'block';
+  c.style.maxWidth = '100%'; c.style.touchAction = 'none'; c.style.userSelect = 'none';
+  const onStart = (clientX, clientY) => {
+    const pos = getCanvasPos(c, clientX, clientY);
+    cropStartX = pos.x; cropStartY = pos.y;
+    cropEndX = pos.x;   cropEndY = pos.y;
+    cropDragging = true; cropSelected = false;
+    document.getElementById('cropConfirmBtn').disabled = true;
+    document.getElementById('cropHint').textContent = 'ドラッグ中...';
+  };
+  const onMove = (clientX, clientY) => {
+    if (!cropDragging) return;
+    const pos = getCanvasPos(c, clientX, clientY);
+    cropEndX = Math.max(0, Math.min(pos.x, c.width));
+    cropEndY = Math.max(0, Math.min(pos.y, c.height));
+    drawCropCanvas();
+  };
+  const onEnd = () => {
+    if (!cropDragging) return;
+    cropDragging = false;
+    const w = Math.abs(cropEndX - cropStartX), h = Math.abs(cropEndY - cropStartY);
+    if (w > 10 && h > 10) {
+      cropSelected = true;
+      document.getElementById('cropConfirmBtn').disabled = false;
+      document.getElementById('cropHint').textContent = `選択範囲：${Math.round(w)}×${Math.round(h)}px　→「確定」を押してください`;
+    } else {
+      cropSelected = false;
+      document.getElementById('cropHint').textContent = 'もう少し広い範囲をドラッグしてください';
+    }
+    drawCropCanvas();
+  };
+  // マウス
+  c.addEventListener('mousedown',  e => onStart(e.clientX, e.clientY));
+  c.addEventListener('mousemove',  e => onMove(e.clientX, e.clientY));
+  c.addEventListener('mouseup',    () => onEnd());
+  // タッチ（iPad）
+  c.addEventListener('touchstart', e => { e.preventDefault(); onStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+  c.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+  c.addEventListener('touchend',   e => { e.preventDefault(); onEnd(); }, {passive:false});
+}
+
+function resetCropSelection() {
+  cropSelected = false; cropDragging = false;
+  document.getElementById('cropConfirmBtn').disabled = true;
+  document.getElementById('cropHint').textContent = 'ドラッグで範囲を選択してください';
+  drawCropCanvas();
+}
+
+function confirmCrop() {
+  if (!cropSelected) return;
+  const x = Math.min(cropStartX, cropEndX), y = Math.min(cropStartY, cropEndY);
+  const w = Math.abs(cropEndX - cropStartX),  h = Math.abs(cropEndY - cropStartY);
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  out.getContext('2d').drawImage(cropImg, x, y, w, h, 0, 0, w, h);
+  photoCroppedData[cropCurrentIdx] = out.toDataURL('image/jpeg', 0.92).split(',')[1];
+  // サムネイルをクロップ後の画像に更新
+  document.getElementById('pslotImg' + cropCurrentIdx).src = out.toDataURL('image/jpeg', 0.92);
+  const btn = document.getElementById('pslotCropBtn' + cropCurrentIdx);
+  if (btn) { btn.textContent = '✅ 範囲指定済み（変更）'; btn.style.background = '#dcfce7'; }
+  document.getElementById('cropModal').style.display = 'none';
+}
+
+function cancelCrop() {
+  document.getElementById('cropModal').style.display = 'none';
+}
+
+// ===== 写真・PDF解析 =====
+function buildChartPrompt(targetDate) {
+  return `これは訪問看護の帳票・記録表の画像です。
+
+【読み取り対象日】「${targetDate}」のデータのみを読み取ってください。それ以外の日付は完全に無視してください。
+
+この帳票には以下の2種類のレイアウトがあります。画像を見て自動で判断してください：
+
+■ パターンA：日付が「行」に並ぶ形式（看護記録・訪問記録など）
+　各日付のブロックに BP・P・SPO2・BT・DIV・処置・in/out・特記 などの行がある形式。
+　→「${targetDate}」の行ブロック全体を読み取る。
+
+■ パターンB：日付が「列」に並ぶ形式（使用物品チェック表など）
+　縦軸が項目、横軸が日付の表形式。
+　→「${targetDate}」の列を読み取る。前バイタルのみvitalsへ。後バイタルは完全無視。
+
+【各項目の読み取りルール】
+・BP（血圧）上/下 → bp_high / bp_low（数値のみ）
+・P（脈拍）→ pulse（数値のみ）
+・SPO2 / SpO2 → spo2（数値のみ）
+・BT（体温）→ temperature（数値のみ）
+・DIV欄（点滴・ソルデム3Aなど）→ care_itemsに追加
+・処置欄の内容 → care_itemsに追加（創部処置・転子部ユーパスタなど）
+・特記欄の内容 → SOAP の O欄またはS欄の材料に使う
+・in/out欄：ml数値 → fluid_intake、U（排尿回数）→ urine_count、K（排便回数）→ defecation_count
+・食事量 → meal_amount
+・S欄：患者・家族の訴えがあれば記載、なければ空文字
+・O欄：観察事実を2〜3文で。バイタル数値はO欄に含めない
+・A欄：1文で簡潔に状態評価
+・P欄：特記なければ空文字
+・transcriptフィールド：「${targetDate}：BP〇/〇、P〇、SpO2〇%、BT〇℃、DIV〇、処置〇、特記〇」のようにサマリーを入れる
+
+${buildPrompt()}
+
+最重要：「${targetDate}」以外の日付のデータは一切返さないでください。`;
+}
+
+async function analyzePhoto() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('Claude APIキーが設定されていません。右上の「⚙️ 管理者設定」からAPIキーを登録してください。'); return; }
+  const activeCount = photoFiles.filter(Boolean).length;
+  if (!activeCount) { alert('画像またはPDFを選択してください'); return; }
+
+  const isChartMode = document.getElementById('chartModeToggle').checked;
+  const chartDate = document.getElementById('chartTargetDate').value.trim();
+  if (isChartMode && !chartDate) { alert('読み取る日付を入力してください（例：4/6）'); return; }
+
+  goStep(2); document.getElementById('progressLog').innerHTML = '';
+  addLog(isChartMode ? `📋 帳票を読み取り中（${chartDate}分）...` : `📷 ${activeCount}件の画像・PDFを読み取り中...`);
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>${isChartMode ? `📋 帳票を読み取り中（${chartDate}）` : '📷 画像・PDFを読み取り中'}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude Vision APIに送信しています</span></div>`);
+
+  // ファイルをbase64に変換
+  async function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(',')[1]);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  // Claudeに送るcontentブロックを構築（クロップ済みデータがあれば優先）
+  const contentBlocks = [];
+  // photoFilesのインデックスに対応するactiveを取得
+  const activeIdxs = [0,1,2].filter(i => photoFiles[i]);
+  for (let i = 0; i < activeIdxs.length; i++) {
+    const idx = activeIdxs[i];
+    const f = photoFiles[idx];
+    const isCropped = !!photoCroppedData[idx];
+    try {
+      const b64 = isCropped ? photoCroppedData[idx] : await toBase64(f);
+      const label = activeIdxs.length > 1 ? `ページ${i+1}` : '';
+      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+        contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } });
+      } else {
+        contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
+      }
+      if (activeIdxs.length > 1) addLog(`✅ ${label} 読み込み完了${isCropped ? '（範囲指定あり）' : ''}`);
+    } catch(e) {
+      showAnalysisError(`ファイル読み込みエラー（ページ${i+1}）: ` + e.message); return;
+    }
+  }
+  if (isChartMode) {
+    contentBlocks.push({ type: 'text', text: buildChartPrompt(chartDate) });
+  } else {
+    contentBlocks.push({ type: 'text', text:
+      `これは訪問看護師の手書きメモ・帳票の画像です。利用者氏名・住所などの個人を特定する情報は含まれていません。\n` +
+      `画像に書かれているバイタルサイン・症状・ケア内容・患者の言葉などをすべて読み取り、以下の形式でSOAPを生成してください。\n\n${buildPrompt()}`
+    });
+  }
+
+  addLog(isChartMode ? '🤖 Claude Vision APIで帳票を解析中...' : '🤖 Claude Vision APIでSOAP生成中...');
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🤖 ${isChartMode ? '帳票データを解析中' : 'SOAP形式に変換中'}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude APIが${isChartMode ? '帳票を読み取り転記データを生成' : 'SOAP記録を生成'}しています</span></div>`);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'anthropic-beta': 'pdfs-2024-09-25'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        system: buildSystemPrompt(),
+        messages: [{ role: 'user', content: contentBlocks }]
+      })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
+    addLog(isChartMode ? `✅ 帳票読み取り完了（${chartDate}）！` : '✅ SOAP生成完了！', true);
+    parseAndFill(data.content.map(c => c.text||'').join(''), isChartMode ? `（帳票より読み取り・${chartDate}分）` : '（写真・PDFより読み取り）');
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（120秒）' : e.message;
+    showAnalysisError('【Claude Vision API】 ' + msg);
+  }
+}
+
+// ===== テキスト解析（後方互換として残す）=====
 async function analyzeText() {
   const apiKey = document.getElementById('apiKeyManual').value.trim() || document.getElementById('apiKey').value.trim();
   const text = document.getElementById('directText').value.trim();
