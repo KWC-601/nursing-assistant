@@ -2019,20 +2019,24 @@ function buildChartPrompt(targetDate) {
 　→「${targetDate}」の列を読み取る。前バイタルのみvitalsへ。後バイタルは完全無視。
 
 【各項目の読み取りルール】
-・BP（血圧）上/下 → bp_high / bp_low（数値のみ）
+・BP（血圧）上/下 → bp_high / bp_low（数値のみ。「163/77」なら bp_high=163、bp_low=77）
 ・P（脈拍）→ pulse（数値のみ）
-・SPO2 / SpO2 → spo2（数値のみ）
+・SPO2 / SpO2 → spo2（数値のみ。空欄・記載なし・判読不能の場合は空文字）
 ・BT（体温）→ temperature（数値のみ）
 ・DIV欄（点滴・ソルデム3Aなど）→ care_itemsに追加
 ・処置欄の内容 → care_itemsに追加（創部処置・転子部ユーパスタなど）
-・特記欄の内容 → SOAP の O欄またはS欄の材料に使う
-・in/out欄：ml数値 → fluid_intake、U（排尿回数）→ urine_count、K（排便回数）→ defecation_count
-・食事量 → meal_amount
+・特記欄の内容 → 下剤・浣腸などはcare_itemsへ、患者の訴えはS欄へ、観察事実はO欄へ
+・in/out欄：ml数値 → fluid_intake、U〇（排尿回数）→ urine_count、K〇（排便回数）→ defecation_count
+・食事量の読み方：
+　- 数値が「/」で区切られている場合は朝食/昼食/夕食の順（例：8/0/10 → 朝8割・昼0割・夕10割）
+　- 「8割」「全量」「ゼロ」「－」など単一値の場合はそのまま記載
+　- meal_amountには「朝8割・昼0割・夕10割」のような読みやすい形式で入れる
+・水分量（ml）→ fluid_intake（数値のみ）
 ・S欄：患者・家族の訴えがあれば記載、なければ空文字
-・O欄：観察事実を2〜3文で。バイタル数値はO欄に含めない
+・O欄：食事・排泄・処置の観察事実を2〜3文で。バイタル数値はO欄に含めない
 ・A欄：1文で簡潔に状態評価
 ・P欄：特記なければ空文字
-・transcriptフィールド：「${targetDate}：BP〇/〇、P〇、SpO2〇%、BT〇℃、DIV〇、処置〇、特記〇」のようにサマリーを入れる
+・transcriptフィールド：「${targetDate}：BT〇℃、BP〇/〇、P〇、SpO2〇%、水分〇ml、食事〇、排尿〇回、排便〇回」のようにサマリーを入れる
 
 ${buildPrompt()}
 
