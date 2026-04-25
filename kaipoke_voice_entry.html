@@ -2083,6 +2083,25 @@ ${buildPrompt()}
 最重要：「${targetDate}」以外の日付のデータは一切返さないでください。`;
 }
 
+// 画像リサイズ（最大1200px・JPEG85%品質）コスト削減用
+async function resizeImageBase64(b64, maxSize = 1200) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      // すでに小さければそのまま返す
+      if (w <= maxSize && h <= maxSize) { resolve(b64); return; }
+      const ratio = Math.min(maxSize / w, maxSize / h);
+      w = Math.round(w * ratio); h = Math.round(h * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.src = 'data:image/jpeg;base64,' + b64;
+  });
+}
+
 async function analyzePhoto() {
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('Claude APIキーが設定されていません。右上の「⚙️ 管理者設定」からAPIキーを登録してください。'); return; }
@@ -2116,9 +2135,12 @@ async function analyzePhoto() {
     const f = photoFiles[idx];
     const isCropped = !!photoCroppedData[idx];
     try {
-      const b64 = isCropped ? photoCroppedData[idx] : await toBase64(f);
+      const b64Raw = isCropped ? photoCroppedData[idx] : await toBase64(f);
+      const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+      // PDF以外は1200px以内にリサイズしてトークン削減
+      const b64 = isPdf ? b64Raw : await resizeImageBase64(b64Raw, 1200);
       const label = activeIdxs.length > 1 ? `ページ${i+1}` : '';
-      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      if (isPdf) {
         contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } });
       } else {
         contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
@@ -2153,7 +2175,7 @@ async function analyzePhoto() {
         'anthropic-beta': 'pdfs-2024-09-25'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        model: 'claude-haiku-4-5-20251001', max_tokens: 2000,
         system: buildSystemPrompt(),
         messages: [{ role: 'user', content: contentBlocks }]
       })
