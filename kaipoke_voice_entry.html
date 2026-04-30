@@ -1875,9 +1875,10 @@ function openCropModal(idx) {
     cropImg = new Image();
     cropImg.onload = () => {
       const canvas = document.getElementById('cropCanvas');
-      // 表示サイズを画面に合わせてスケール
-      const maxW = Math.min(cropImg.width, window.innerWidth * 0.9 - 32, 660);
-      const scale = maxW / cropImg.width;
+      // 幅・高さ両方でスケールを計算して画面内に収める
+      const maxW = Math.min(cropImg.width, window.innerWidth  * 0.9 - 32, 660);
+      const maxH = Math.min(cropImg.height, window.innerHeight * 0.62); // ヘッダー・ボタン分を除いた高さ
+      const scale = Math.min(maxW / cropImg.width, maxH / cropImg.height);
       canvas.width  = cropImg.width;
       canvas.height = cropImg.height;
       canvas.style.width  = Math.round(cropImg.width  * scale) + 'px';
