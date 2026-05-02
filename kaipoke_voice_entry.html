@@ -550,6 +550,23 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
         </div>
       </div>
 
+      <!-- 手動入力カード -->
+      <div onclick="selectInputMode('text')"
+        style="cursor:pointer;background:var(--surface);border:2.5px solid var(--orange);border-radius:14px;padding:28px 20px;text-align:center;transition:all .2s;box-shadow:var(--shadow)"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:48px;margin-bottom:12px">⌨️</div>
+        <div style="font-size:16px;font-weight:700;color:var(--orange);margin-bottom:8px">手動入力</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+          テキストを直接入力<br>
+          ClaudeがSOAPに変換<br>
+          → カイポケに転記
+        </div>
+        <div style="background:var(--orange-light);border-radius:8px;padding:8px;font-size:11px;color:var(--orange);font-weight:600">
+          Claude API のみ使用
+        </div>
+      </div>
+
     </div>
     <div style="text-align:center;font-size:11px;color:var(--text2);margin-top:8px">
       🔑 APIキーは右上の「⚙️ 管理者設定」から登録できます
@@ -760,6 +777,29 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
 
         <div id="photoAnalyzeBtn" style="display:none">
           <button class="btn btn-lg btn-full" onclick="analyzePhoto()" style="background:var(--green);color:#fff;font-size:14px">🔍 読み取り・SOAP解析を開始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 手動入力セクション ===== -->
+  <div id="textInputSection" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button onclick="backToModeSelect()" class="btn btn-outline" style="padding:7px 14px;font-size:12px">← 選び直す</button>
+      <div style="font-size:15px;font-weight:700;color:var(--orange)">⌨️ 手動入力</div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:var(--orange-light);color:var(--orange)">⌨️</div>
+        <h2>テキストを入力してSOAP変換</h2>
+      </div>
+      <div class="card-body">
+        <textarea id="directText" placeholder="訪問看護の記録内容をここに入力してください。&#10;&#10;例）&#10;BP 138/82、P 78、SpO2 97%、BT 36.4℃&#10;創部の発赤なし。滲出液少量。ガーゼ交換実施。&#10;患者より「昨日は少し眠れた」との報告あり。"
+          style="width:100%;min-height:200px;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;resize:vertical;line-height:1.8"></textarea>
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+          <button class="btn btn-primary" onclick="analyzeText()" style="font-size:14px;padding:11px 28px">
+            🤖 SOAP解析を開始
+          </button>
         </div>
       </div>
     </div>
@@ -1521,6 +1561,7 @@ function selectInputMode(mode) {
   document.getElementById('modeSelectSection').style.display = 'none';
   document.getElementById('voiceInputSection').style.display = mode === 'voice' ? 'block' : 'none';
   document.getElementById('photoInputSection').style.display = mode === 'photo' ? 'block' : 'none';
+  document.getElementById('textInputSection').style.display  = mode === 'text'  ? 'block' : 'none';
   updateTargetBanners();
 
   const openaiKey = localStorage.getItem('saved_openai_key') || '';
@@ -1560,6 +1601,7 @@ function backToModeSelect() {
   document.getElementById('modeSelectSection').style.display = 'block';
   document.getElementById('voiceInputSection').style.display = 'none';
   document.getElementById('photoInputSection').style.display = 'none';
+  document.getElementById('textInputSection').style.display  = 'none';
 }
 
 // ===== ステータス =====
