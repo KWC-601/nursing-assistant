@@ -486,6 +486,15 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
         style="background:#94a3b8;color:#fff;cursor:not-allowed;opacity:.5;font-size:15px;padding:16px">
         🔒 3項目すべて確認してから次へ進めます
       </button>
+
+      <!-- 報告書作成ボタン -->
+      <div style="margin-top:12px;border-top:1px dashed var(--border);padding-top:14px;text-align:center">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">月次報告書（病状の経過・看護の内容）を作成する場合はこちら</div>
+        <button id="reportBtn" class="btn btn-full" onclick="goToReport()"
+          style="background:#ede9fe;color:#7c3aed;border:2px solid #c4b5fd;font-size:14px;padding:12px">
+          📋 報告書作成へ進む（月次SOAP→要約）
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -802,6 +811,122 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== 報告書作成セクション ===== -->
+  <div id="reportInputSection" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button onclick="backToModeSelect()" class="btn btn-outline" style="padding:7px 14px;font-size:12px">← 戻る</button>
+      <div style="font-size:15px;font-weight:700;color:#7c3aed">📋 報告書作成</div>
+    </div>
+
+    <!-- 利用者バナー -->
+    <div id="reportUserBanner" style="display:none;background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:10px;padding:10px 16px;margin-bottom:12px;color:#fff;font-size:13px;font-weight:600"></div>
+
+    <!-- SOAP入力カード -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div class="icon" style="background:#ede9fe;color:#7c3aed">📋</div>
+        <h2>月次SOAP記録を貼り付けて要約を作成</h2>
+      </div>
+      <div class="card-body">
+
+        <!-- 操作手順 + ブックマークレット -->
+        <div style="background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:10px;padding:13px 16px;margin-bottom:16px;color:#4c1d95">
+
+          <!-- STEP 1: ブックマーク保存 -->
+          <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed #c4b5fd">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px">🔖 STEP 1 — 「記録コピーツール」をブックマークバーに保存（初回のみ）</div>
+            <div style="font-size:12px;line-height:1.7;margin-bottom:8px">下のボタンをブックマークバーへドラッグして保存してください。</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <a id="soapCopyBookmarkletAnchor" href="" ondragstart="fixSoapCopyBookmarkletHref()"
+                style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;text-decoration:none;cursor:grab;box-shadow:var(--shadow);white-space:nowrap">
+                📋 記録コピーツール ← ここをドラッグ
+              </a>
+              <button onclick="copySoapCopyBookmarkletCode()" class="btn btn-outline" style="font-size:12px;padding:7px 12px;border-color:#7c3aed;color:#7c3aed">手動登録用コードをコピー</button>
+            </div>
+            <div id="soapBookmarkletCopied" style="display:none;margin-top:6px;font-size:12px;color:var(--green);font-weight:700;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:6px 10px">
+              ✅ コピーしました！ブックマークバーを右クリック →「ページを追加」→ URLに貼り付けて保存
+            </div>
+          </div>
+
+          <!-- STEP 2〜5 -->
+          <div style="font-size:12px;line-height:2">
+            <div>② カイポケで <strong>個人帳票 → 記録Ⅱ 観察記録</strong> を対象月で開く</div>
+            <div>③ ブックマークバーの「<strong>📋 記録コピーツール</strong>」をクリック → 自動で全選択＆コピー完了</div>
+            <div>④ このアプリに戻り「<strong>📋 カイポケからペースト</strong>」ボタンを押す</div>
+            <div>⑤「<strong>🤖 要約を生成</strong>」→ 各「<strong>📋 コピー</strong>」でカイポケ報告書に貼り付け</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">対象月（任意・メモ用）</label>
+          <input type="text" id="reportMonth" class="form-input" placeholder="例：2026年4月" style="max-width:200px">
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="form-label" style="margin-bottom:0">SOAP記録（カイポケ 記録Ⅱ 観察記録）</label>
+            <button onclick="pasteFromClipboard()" class="btn btn-success" style="padding:6px 14px;font-size:12px">
+              📋 カイポケからペースト
+            </button>
+          </div>
+          <textarea id="reportSoapText"
+            placeholder="「📋 カイポケからペースト」ボタンを押すか、ここに直接貼り付けてください。&#10;&#10;例）&#10;4/1&#10;S: 「膝が痛い」との訴えあり。&#10;O: BP 138/82、P 78、SpO2 97%&#10;A: 血圧はやや高め、疼痛あり&#10;P: 疼痛部位の観察、清拭実施&#10;&#10;4/2&#10;S: 「昨日より楽になった」&#10;O: BP 128/78、P 76…"
+            style="width:100%;min-height:280px;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;resize:vertical;line-height:1.8"></textarea>
+          <div id="pasteStatusMsg" style="display:none;margin-top:6px;font-size:12px;font-weight:600"></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+          <button class="btn btn-primary" onclick="analyzeReport()" id="reportAnalyzeBtn" style="font-size:14px;padding:11px 28px;background:#7c3aed">
+            🤖 要約を生成（病状の経過・看護の内容）
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結果表示カード（生成後に表示） -->
+    <div id="reportResultCard" class="card" style="display:none">
+      <div class="card-header">
+        <div class="icon" style="background:#ede9fe;color:#7c3aed">✅</div>
+        <h2>要約結果 <span id="reportMonthLabel" style="font-size:12px;font-weight:400;color:var(--text2)"></span></h2>
+      </div>
+      <div class="card-body">
+
+        <!-- 病状の経過 -->
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:#0e7490">📄 病状の経過（S＋Oの要約）</div>
+            <button onclick="copyReportField('reportProgressText')" class="btn btn-outline" style="padding:5px 12px;font-size:11px">📋 コピー</button>
+          </div>
+          <textarea id="reportProgressText" rows="6"
+            style="width:100%;padding:12px;border:1.5px solid #bae6fd;border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;resize:vertical;line-height:1.8;background:#f0f9ff"></textarea>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">※ カイポケ報告書「病状の経過」欄にコピーして貼り付けてください</div>
+        </div>
+
+        <!-- 看護の内容 -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:#059669">📄 看護の内容（A＋Pの要約）</div>
+            <button onclick="copyReportField('reportNursingText')" class="btn btn-outline" style="padding:5px 12px;font-size:11px">📋 コピー</button>
+          </div>
+          <textarea id="reportNursingText" rows="6"
+            style="width:100%;padding:12px;border:1.5px solid #a7f3d0;border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;resize:vertical;line-height:1.8;background:#f0fdf4"></textarea>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">※ カイポケ報告書「看護の内容」欄にコピーして貼り付けてください</div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="analyzeReport()" class="btn btn-outline" style="font-size:12px;color:#7c3aed;border-color:#7c3aed">
+            🔄 再生成
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- エラー表示 -->
+    <div id="reportErrorBox" style="display:none" class="alert alert-danger">
+      <span>❌</span><div id="reportErrorMsg"></div>
     </div>
   </div>
 
@@ -1365,9 +1490,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateDateCombo();
   // 既存値をテーブルに初期表示
   initExistingValues();
-  // ブックマークレットリンクを初期化（読み取り用・書き込み用）
+  // ブックマークレットリンクを初期化（読み取り用・書き込み用・記録コピー用）
   initBookmarkletLink();
   fixWriteBookmarkletHref();
+  initSoapCopyBookmarkletLink();
   // URLハッシュにカイポケデータがあれば自動読み込み（初回 + 再読み取り時）
   checkHashData();
   window.addEventListener('hashchange', checkHashData);
@@ -1470,6 +1596,7 @@ function checkProceedReady() {
   btn.style.cursor = ok ? 'pointer' : 'not-allowed';
   btn.style.background = ok ? 'var(--accent)' : '#94a3b8';
   btn.textContent = ok ? '✅ 確認完了 — 音声入力へ進む →' : '🔒 3項目すべて確認してから次へ進めます';
+
 }
 
 // ===== ステップ移動 =====
@@ -1556,16 +1683,42 @@ function updateTargetBanners() {
   ['banner_staff','banner_staff_m'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=staff; });
 }
 
+// ===== 報告書作成へ移動 =====
+function goToReport() {
+  // 利用者情報をレポートセクションに反映
+  const user  = document.getElementById('input_user')?.value.trim() || '';
+  const staff = selectedStaffs.join('・') || '';
+  const monthEl = document.getElementById('reportMonth');
+  if (monthEl && !monthEl.value) {
+    // 対象月を訪問日から自動設定
+    const dateVal = document.getElementById('input_date_cal')?.value;
+    if (dateVal) {
+      const d = new Date(dateVal);
+      monthEl.value = `${d.getFullYear()}年${d.getMonth()+1}月`;
+    }
+  }
+  // 利用者名をバナーに表示
+  const banner = document.getElementById('reportUserBanner');
+  if (banner && user) {
+    banner.textContent = `👤 ${user}　記録者：${staff}`;
+    banner.style.display = 'block';
+  }
+  goStep(1);
+  selectInputMode('report');
+}
+
 // ===== 入力方法選択 =====
 function selectInputMode(mode) {
   document.getElementById('modeSelectSection').style.display = 'none';
-  document.getElementById('voiceInputSection').style.display = mode === 'voice' ? 'block' : 'none';
-  document.getElementById('photoInputSection').style.display = mode === 'photo' ? 'block' : 'none';
-  document.getElementById('textInputSection').style.display  = mode === 'text'  ? 'block' : 'none';
+  document.getElementById('voiceInputSection').style.display  = mode === 'voice'  ? 'block' : 'none';
+  document.getElementById('photoInputSection').style.display  = mode === 'photo'  ? 'block' : 'none';
+  document.getElementById('textInputSection').style.display   = mode === 'text'   ? 'block' : 'none';
+  document.getElementById('reportInputSection').style.display = mode === 'report' ? 'block' : 'none';
+  if (mode === 'report') return; // 報告書モードはAPIキー確認のみ不要
   updateTargetBanners();
 
-  const openaiKey = localStorage.getItem('saved_openai_key') || '';
-  const claudeKey = localStorage.getItem('saved_claude_key') || '';
+  const openaiKey = _loadKey('saved_openai_key');
+  const claudeKey = _loadKey('saved_claude_key');
 
   const okCss  = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #a7f3d0;color:#065f46';
   const ngCss  = 'margin-bottom:14px;border-radius:10px;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px;background:var(--red-light);border:1px solid #fecaca;color:#7f1d1d';
@@ -1598,10 +1751,11 @@ function selectInputMode(mode) {
   }
 }
 function backToModeSelect() {
-  document.getElementById('modeSelectSection').style.display = 'block';
-  document.getElementById('voiceInputSection').style.display = 'none';
-  document.getElementById('photoInputSection').style.display = 'none';
-  document.getElementById('textInputSection').style.display  = 'none';
+  document.getElementById('modeSelectSection').style.display  = 'block';
+  document.getElementById('voiceInputSection').style.display  = 'none';
+  document.getElementById('photoInputSection').style.display  = 'none';
+  document.getElementById('textInputSection').style.display   = 'none';
+  document.getElementById('reportInputSection').style.display = 'none';
 }
 
 // ===== ステータス =====
@@ -2272,6 +2426,142 @@ async function analyzeText() {
   }
 }
 
+// ===== 報告書要約生成 =====
+async function analyzeReport() {
+  const apiKey = document.getElementById('apiKeyManual')?.value.trim() || document.getElementById('apiKey')?.value.trim();
+  const soapText = document.getElementById('reportSoapText').value.trim();
+  const month = document.getElementById('reportMonth').value.trim();
+
+  if (!apiKey) {
+    alert('Claude APIキーが設定されていません。右上の「⚙️ 管理者設定」からAPIキーを登録してください。');
+    return;
+  }
+  if (!soapText) {
+    alert('SOAP記録を貼り付けてください');
+    return;
+  }
+
+  // UI状態リセット
+  document.getElementById('reportResultCard').style.display = 'none';
+  document.getElementById('reportErrorBox').style.display = 'none';
+  const btn = document.getElementById('reportAnalyzeBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 生成中...';
+
+  const prompt = `あなたは訪問看護の専門家です。以下は1ヶ月分の日別SOAP記録です。
+これを読み、訪問看護指示書・報告書の記載に使える要約を2つ作成してください。
+
+【要約ルール】
+・各要約は1段落（3〜6文程度）にまとめること
+・専門的な医療・看護用語を使用すること
+・月全体の傾向・変化・主なケア内容を網羅すること
+・個人情報（氏名・住所等）は含まれていません
+・対象月：${month || '記録期間'}
+
+【出力形式】必ず以下のJSON形式で返してください（コードブロックなし）：
+{
+  "progress": "病状の経過（S・Oの要約）のテキスト",
+  "nursing": "看護の内容（A・Pの要約）のテキスト"
+}
+
+【病状の経過の書き方】
+S（利用者の訴え・主観的情報）とO（バイタル・観察所見等の客観的情報）を統合して要約する。
+月を通じた症状の変化・安定・増悪、バイタルサインの傾向、利用者の訴えの特徴を1段落で記述する。
+
+【看護の内容の書き方】
+A（アセスメント・判断）とP（計画・実施した看護介入）を統合して要約する。
+月を通じて実施した主要なケア・処置・指導内容、看護上の判断・方針を1段落で記述する。
+
+【SOAP記録】
+${soapText}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
+
+    const rawText = data.content.map(c => c.text || '').join('').trim();
+
+    // JSON解析（コードブロック除去も試みる）
+    let parsed;
+    try {
+      const jsonStr = rawText.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/,'').trim();
+      parsed = JSON.parse(jsonStr);
+    } catch(e) {
+      // JSON解析失敗時はテキスト全体を病状の経過に
+      parsed = { progress: rawText, nursing: '（JSON解析に失敗しました。再生成してください）' };
+    }
+
+    // 結果を表示
+    document.getElementById('reportProgressText').value = parsed.progress || '';
+    document.getElementById('reportNursingText').value  = parsed.nursing  || '';
+    if (month) {
+      document.getElementById('reportMonthLabel').textContent = '— ' + month;
+    }
+    document.getElementById('reportResultCard').style.display = 'block';
+    document.getElementById('reportResultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
+    document.getElementById('reportErrorMsg').textContent = '【Claude API エラー】 ' + msg;
+    document.getElementById('reportErrorBox').style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 病状の経過・看護の内容を生成';
+  }
+}
+
+function copyReportField(elemId) {
+  const el = document.getElementById(elemId);
+  if (!el || !el.value) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    const btn = el.parentElement.querySelector('button');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✅ コピー済み'; setTimeout(() => btn.textContent = orig, 1800); }
+  }).catch(() => {
+    el.select();
+    document.execCommand('copy');
+  });
+}
+
+async function pasteFromClipboard() {
+  const statusEl = document.getElementById('pasteStatusMsg');
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text || !text.trim()) {
+      statusEl.style.display = 'block';
+      statusEl.style.color = 'var(--orange)';
+      statusEl.textContent = '⚠️ クリップボードが空です。カイポケで記録を選択してコピーしてから再度押してください。';
+      return;
+    }
+    document.getElementById('reportSoapText').value = text;
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ ${text.length}文字をペーストしました。内容を確認して「🤖 要約を生成」ボタンを押してください。`;
+  } catch(e) {
+    // クリップボードの読み取り権限がない場合
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ クリップボードへのアクセスが拒否されました。テキストエリアをクリックして Ctrl+V（Mac: ⌘+V）で直接貼り付けてください。';
+  }
+}
+
 // ===== 文字起こし再解析 =====
 async function reanalyzeTranscript() {
   const apiKey = document.getElementById('apiKeyManual')?.value.trim() || document.getElementById('apiKey').value.trim();
@@ -2481,6 +2771,80 @@ function buildBookmarkletCode() {
     'var b64=btoa(unescape(encodeURIComponent(j)));' +
     'window.open(\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64,\'nursing-assistant\');' +
     '})();';
+}
+
+// ===== 記録Ⅱコピーブックマークレット =====
+function buildSoapCopyBookmarkletCode() {
+  return 'javascript:(function(){' +
+    'function doCopy(t){' +
+      'if(!t||!t.trim()){alert("❌ 記録が見つかりませんでした。\\n別の方法でお試しください。");return;}' +
+      'function done(){alert("✅ 観察記録をコピーしました！（"+t.length+"文字）\\nアプリに戻って「📋 カイポケからペースト」ボタンを押してください。");}' +
+      'function fb(){var el=document.createElement("textarea");el.value=t;el.style.cssText="position:fixed;opacity:0;top:0;left:0";document.body.appendChild(el);el.select();try{document.execCommand("copy");done();}catch(e){alert("❌ コピー失敗。Ctrl+A→Ctrl+Cで手動コピーしてください。");}document.body.removeChild(el);}' +
+      'if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(fb);}else{fb();}' +
+    '}' +
+    // 0.【最優先】カイポケ報告書ページの記録Ⅱ観察記録パネル
+    'var soapEl=document.querySelector("#care_doc2_observation_popup");' +
+    'if(soapEl){' +
+      'var st0=window.getComputedStyle(soapEl);' +
+      'if(st0.display!=="none"&&st0.visibility!=="hidden"){' +
+        'var soapT=(soapEl.innerText||soapEl.textContent||"").trim();' +
+        'if(soapT.length>30){doCopy(soapT);return;}' +
+      '}' +
+    '}' +
+    // 1.【カイポケ専用】ナビを除いたメインコンテンツ領域を優先取得
+    'var kaipokeSels=["#contain","#app_body","#content","#contents"];' +
+    'for(var i=0;i<kaipokeSels.length;i++){' +
+      'var kEl=document.querySelector(kaipokeSels[i]);' +
+      'if(kEl){' +
+        'var kT=(kEl.innerText||kEl.textContent||"").trim();' +
+        // ナビ文字列を含まない or 十分なコンテンツがある場合に採用
+        'var hasNav=kT.indexOf("ログアウト")>=0&&kT.indexOf("マニュアル")>=0;' +
+        'if(kT.length>100&&!hasNav){doCopy(kT);return;}' +
+      '}' +
+    '}' +
+    // 2. iframeの中（ping.jspを除く）
+    'var iframes=document.querySelectorAll("iframe");' +
+    'for(var j=0;j<iframes.length;j++){' +
+      'try{' +
+        'var iDoc=iframes[j].contentDocument||iframes[j].contentWindow.document;' +
+        'var iT=(iDoc.body.innerText||iDoc.body.textContent||"").trim();' +
+        'if(iT.length>200&&iT.indexOf("ping")<0){doCopy(iT);return;}' +
+      '}catch(e){}' +
+    '}' +
+    // 3. 表示中のモーダル/ダイアログ
+    'var modalSels=["[role=\\"dialog\\"]",".modal-body",".modal-content",".popup-body",".popup-content"];' +
+    'for(var k=0;k<modalSels.length;k++){' +
+      'var mEl=document.querySelector(modalSels[k]);' +
+      'if(mEl){var st=window.getComputedStyle(mEl);if(st.display!=="none"&&st.visibility!=="hidden"){var mT=(mEl.innerText||mEl.textContent||"").trim();if(mT.length>100){doCopy(mT);return;}}}' +
+    '}' +
+    // 4. ナビを除いてbodyから取得（ナビ部分を削除）
+    'var bodyT=(document.body.innerText||document.body.textContent||"").trim();' +
+    // "ログアウト"以降をメインコンテンツとみなす（カイポケのナビ末尾は"ログアウト"）
+    'var logoutIdx=bodyT.indexOf("ログアウト");' +
+    'if(logoutIdx>=0){var afterNav=bodyT.substring(logoutIdx+5).trim();if(afterNav.length>100){doCopy(afterNav);return;}}' +
+    // 5. 最終フォールバック
+    'doCopy(bodyT);' +
+  '})();';
+}
+
+function fixSoapCopyBookmarkletHref() {
+  const a = document.getElementById('soapCopyBookmarkletAnchor');
+  if (a) a.href = buildSoapCopyBookmarkletCode();
+}
+
+function copySoapCopyBookmarkletCode() {
+  const code = buildSoapCopyBookmarkletCode();
+  navigator.clipboard.writeText(code).then(() => {
+    const el = document.getElementById('soapBookmarkletCopied');
+    if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 5000); }
+  }).catch(() => {
+    prompt('以下のコードをコピーし、ブックマークのURLに貼り付けてください：', code);
+  });
+}
+
+function initSoapCopyBookmarkletLink() {
+  const a = document.getElementById('soapCopyBookmarkletAnchor');
+  if (a) a.href = buildSoapCopyBookmarkletCode();
 }
 
 function fixBookmarkletHref() {
@@ -2776,9 +3140,9 @@ function adminLogin() {
 }
 
 function openAdminPanel() {
-  // APIキーをフィールドに反映
-  document.getElementById('admin_openai_key').value = localStorage.getItem('saved_openai_key') || '';
-  document.getElementById('admin_claude_key').value = localStorage.getItem('saved_claude_key') || '';
+  // APIキーをフィールドに反映（localStorage + cookie 両方から取得）
+  document.getElementById('admin_openai_key').value = _loadKey('saved_openai_key');
+  document.getElementById('admin_claude_key').value = _loadKey('saved_claude_key');
   // スタッフリストを反映
   const staffRaw = localStorage.getItem('staff_list');
   const staffArr = staffRaw ? JSON.parse(staffRaw) : STAFF_LIST;
@@ -2806,11 +3170,42 @@ function toggleAdminKey(id) {
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
+// ===== APIキー永続化（localStorage + cookie 二重保存） =====
+function _setCookie(name, value, days) {
+  const exp = new Date();
+  exp.setTime(exp.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + exp.toUTCString() + ';path=/;SameSite=Lax';
+}
+function _getCookie(name) {
+  const m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+  return m ? decodeURIComponent(m[2]) : '';
+}
+function _delCookie(name) {
+  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax';
+}
+function _saveKey(key, val) {
+  try { localStorage.setItem(key, val); } catch(e) {}
+  _setCookie(key, val, 365);
+}
+function _loadKey(key) {
+  const ls = (typeof localStorage !== 'undefined') ? (localStorage.getItem(key) || '') : '';
+  const ck = _getCookie(key);
+  // localStorageに無くてcookieにある場合はlocalStorageに復元
+  if (!ls && ck) { try { localStorage.setItem(key, ck); } catch(e) {} return ck; }
+  // localStorageにあってcookieに無い場合はcookieに保存
+  if (ls && !ck) { _setCookie(key, ls, 365); }
+  return ls || ck;
+}
+function _removeKey(key) {
+  try { localStorage.removeItem(key); } catch(e) {}
+  _delCookie(key);
+}
+
 function saveApiKeySettings() {
   const ok = document.getElementById('admin_openai_key').value.trim();
   const ck = document.getElementById('admin_claude_key').value.trim();
-  if (ok) localStorage.setItem('saved_openai_key', ok);
-  if (ck) localStorage.setItem('saved_claude_key', ck);
+  if (ok) _saveKey('saved_openai_key', ok);
+  if (ck) _saveKey('saved_claude_key', ck);
   // 入力欄にも反映
   applyStoredApiKeys();
   const msg = document.getElementById('apiSaveMsg');
@@ -2818,15 +3213,15 @@ function saveApiKeySettings() {
   setTimeout(() => msg.style.display = 'none', 2500);
 }
 function clearApiKeySettings() {
-  localStorage.removeItem('saved_openai_key');
-  localStorage.removeItem('saved_claude_key');
+  _removeKey('saved_openai_key');
+  _removeKey('saved_claude_key');
   document.getElementById('admin_openai_key').value = '';
   document.getElementById('admin_claude_key').value = '';
   alert('APIキーを削除しました');
 }
 function applyStoredApiKeys() {
-  const ok = localStorage.getItem('saved_openai_key') || '';
-  const ck = localStorage.getItem('saved_claude_key') || '';
+  const ok = _loadKey('saved_openai_key');
+  const ck = _loadKey('saved_claude_key');
   ['openaiKey'].forEach(id => { const el = document.getElementById(id); if (el && ok) el.value = ok; });
   ['apiKey','apiKeyManual'].forEach(id => { const el = document.getElementById(id); if (el && ck) el.value = ck; });
 }
