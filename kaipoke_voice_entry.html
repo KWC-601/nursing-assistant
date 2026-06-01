@@ -2945,7 +2945,8 @@ function fetchFromKaipokeManual() {
 function checkHashData() {
   const hash = location.hash;
   if (!hash.startsWith('#kd=')) return;
-  const b64 = hash.slice(4);
+  // &apisetup= など他のパラメータが続く場合は kd 部分だけ取り出す
+  const b64 = hash.slice(4).split('&')[0];
   try {
     const json = decodeURIComponent(escape(atob(b64)));
     const data = JSON.parse(json);
