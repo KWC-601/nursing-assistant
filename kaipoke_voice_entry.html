@@ -1528,16 +1528,18 @@ document.addEventListener('DOMContentLoaded', () => {
       try { e.source.postMessage({type: 'transferData', json: json || null}, e.origin); } catch(ex) {}
     }
   });
-  // URLハッシュにAPIキーが含まれていれば自動保存（Safari対策ブックマーク用）
+  // URLハッシュにAPIキーが含まれていれば自動保存（Safari対策・ブックマークレット連携用）
   try {
-    const hash = decodeURIComponent(location.hash);
-    const match = hash.match(/#apisetup=([A-Za-z0-9+/=]+)/);
+    const hash = location.hash;
+    // #apisetup=... または #kd=...&apisetup=... 両方に対応
+    const match = hash.match(/[#&]apisetup=([A-Za-z0-9+/=]+)/);
     if (match) {
       const decoded = JSON.parse(decodeURIComponent(escape(atob(match[1]))));
       if (decoded.ok) _saveKey('saved_openai_key', decoded.ok);
       if (decoded.ck) _saveKey('saved_claude_key', decoded.ck);
-      // ハッシュをURLから除去（キーを隠す）
-      history.replaceState(null, '', location.pathname + location.search);
+      // apisetup部分だけURLから除去（kdは残す）
+      const newHash = hash.replace(/&apisetup=[A-Za-z0-9+/=]+/, '').replace(/#apisetup=[A-Za-z0-9+/=]+/, '');
+      history.replaceState(null, '', location.pathname + location.search + (newHash !== '#' ? newHash : ''));
     }
   } catch(e) {}
   // 保存済みAPIキーを自動反映
@@ -2809,7 +2811,13 @@ function buildBookmarkletCode() {
     'visitDate:vD,visitTimeStart:vTS,visitTimeEnd:vTE,pageTitle:document.title,url:location.href};' +
     'var j=JSON.stringify(d);' +
     'var b64=btoa(unescape(encodeURIComponent(j)));' +
-    'window.open(\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64,\'nursing-assistant\');' +
+    'var ap=' + JSON.stringify(function(){
+      const ck = _loadKey('saved_claude_key');
+      const ok = _loadKey('saved_openai_key');
+      if (!ck && !ok) return '';
+      return '&apisetup=' + btoa(unescape(encodeURIComponent(JSON.stringify({ok: ok||'', ck: ck||''}))));
+    }()) + ';' +
+    'window.open(\'https://kwc-601.github.io/nursing-assistant/kaipoke_voice_entry.html#kd=\'+b64+ap,\'nursing-assistant\');' +
     '})();';
 }
 
