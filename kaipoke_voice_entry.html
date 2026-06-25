@@ -798,10 +798,26 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
               style="flex:1;min-width:120px;max-width:200px;padding:8px 12px;border:1.5px solid #a78bfa;border-radius:8px;font-size:13px;font-family:inherit;color:var(--text)">
             <div style="font-size:11px;color:#7c3aed">※表の列見出しと同じ形式で入力</div>
           </div>
+          <!-- グループホーム形式トグル -->
+          <div style="border-top:1px solid #e9d5ff;margin-top:10px;padding-top:10px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="checkbox" id="groupHomeModeToggle" onchange="onGroupHomeModeToggle()" style="width:18px;height:18px;accent-color:#0e7490">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#0e7490">🏠 グループホーム形式（複数患者）</div>
+                <div style="font-size:11px;color:var(--accent);margin-top:1px">複数の利用者が列に並ぶ健康状態記録表を読み取る場合はONにしてください</div>
+              </div>
+            </label>
+          </div>
         </div>
 
         <div id="photoAnalyzeBtn" style="display:none">
           <button class="btn btn-lg btn-full" onclick="analyzePhoto()" style="background:var(--green);color:#fff;font-size:14px">🔍 読み取り・SOAP解析を開始</button>
+        </div>
+
+        <!-- グループホーム患者選択エリア -->
+        <div id="groupHomeSelectArea" style="display:none;margin-top:12px;padding:14px;background:#e0f2fe;border:2px solid var(--accent);border-radius:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px">👤 利用者を選択してください</div>
+          <div id="groupHomePatientBtns" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
       </div>
     </div>
@@ -2085,8 +2101,28 @@ function onChartModeToggle() {
   const on = document.getElementById('chartModeToggle').checked;
   const row = document.getElementById('chartDateRow');
   row.style.display = on ? 'flex' : 'none';
+  // グループホームと排他
+  if (on) document.getElementById('groupHomeModeToggle').checked = false;
+  updatePhotoAnalyzeBtn();
+}
+function onGroupHomeModeToggle() {
+  const on = document.getElementById('groupHomeModeToggle').checked;
+  // 帳票モードと排他
+  if (on) {
+    document.getElementById('chartModeToggle').checked = false;
+    document.getElementById('chartDateRow').style.display = 'none';
+  }
+  document.getElementById('groupHomeSelectArea').style.display = 'none';
+  updatePhotoAnalyzeBtn();
+}
+function updatePhotoAnalyzeBtn() {
   const btn = document.querySelector('#photoAnalyzeBtn button');
-  if (btn) btn.textContent = on ? '📋 帳票を読み取り・転記データを生成' : '🔍 読み取り・SOAP解析を開始';
+  if (!btn) return;
+  const isChart = document.getElementById('chartModeToggle').checked;
+  const isGH = document.getElementById('groupHomeModeToggle').checked;
+  if (isChart) btn.textContent = '📋 帳票を読み取り・転記データを生成';
+  else if (isGH) btn.textContent = '🏠 グループホーム記録を読み取り';
+  else btn.textContent = '🔍 読み取り・SOAP解析を開始';
 }
 
 // ===== クロップモーダル =====
@@ -2232,6 +2268,189 @@ function cancelCrop() {
   document.getElementById('cropModal').style.display = 'none';
 }
 
+// ===== 自動判定プロンプト =====
+function buildAutoDetectPrompt() {
+  return `この画像は訪問看護に関する記録です。まず画像の形式を自動判定し、対応するJSONを返してください（コードブロック不要）。
+
+【判定基準】
+・グループホーム形式：行に体温・血圧・脈拍などの項目が並び、列に複数の利用者名がある表形式の健康状態記録表
+・個人記録形式：1名の利用者の手書きメモ・訪問看護記録（SOAP形式や観察メモなど）
+
+---
+◆ グループホーム形式の場合 → 以下のJSONを返す：
+{
+  "format": "group_home",
+  "patients": [
+    {
+      "name": "利用者名（様を除く）",
+      "temperature": "体温数値のみ（例：36.4）",
+      "bp_high": "血圧上（例：102）",
+      "bp_low": "血圧下（例：66）",
+      "pulse": "脈拍数値のみ（例：85）",
+      "spo2": "SpO2数値のみ（例：98）",
+      "chief_complaint": "主訴テキスト",
+      "medication": "内服管理の状態",
+      "appetite": "食欲変化（減・普・増のいずれか）",
+      "excretion": "排泄状況テキスト",
+      "sleep": "睡眠状況テキスト",
+      "notes": "睡眠状況より下の全項目のフリーテキスト"
+    }
+  ]
+}
+
+---
+◆ 個人記録形式の場合 → 以下のJSONを返す：
+{
+  "format": "individual",
+  "transcript": "読み取った記録の全文（氏名・日付・担当者名は除く）",
+  "vitals": {
+    "temperature": "体温数値のみ",
+    "bp_high": "血圧上数値のみ",
+    "bp_low": "血圧下数値のみ",
+    "pulse": "脈拍数値のみ",
+    "spo2": "SpO2数値のみ",
+    "respiration": "呼吸数数値のみ",
+    "weight": "体重数値のみ",
+    "blood_sugar": "血糖値数値のみ",
+    "irregular_pulse": "不整脈 0=なし 1=あり 空=不明"
+  },
+  "soap": {
+    "S": "患者の訴え・言葉を1から2文で簡潔に",
+    "O": "観察事実を句読点でつなぐ2から3文以内。直接観察は「状態。」「あり。」、聴取情報は「とのこと。」",
+    "A": "1文で簡潔に",
+    "P": "1から2文で簡潔に"
+  },
+  "mentioned_names": ["テキスト中に登場した人名リスト"],
+  "care_items": ["実施したケア項目の配列"],
+  "observations": {
+    "urine_count": "排尿回数数値のみ",
+    "defecation_count": "排便回数数値のみ",
+    "fluid_intake": "水分摂取量mlのみ",
+    "meal_amount": "食事量（例：全量・5割・半量）"
+  }
+}
+
+【共通ルール】「〜」は絶対に使用禁止。範囲はすべて「から」を使うこと。値が不明・空欄の場合は空文字にする。`;
+}
+
+// ===== グループホーム形式読み取り =====
+function buildGroupHomePrompt() {
+  return `この画像はグループホームの利用者健康状態記録表です。複数の利用者が列に並んでいます。
+各列の利用者ごとに情報を読み取り、JSON形式で返してください（コードブロックなし）。
+
+【読み取りルール】
+・体温・血圧・脈拍・SpO2・主訴・内服管理・食欲変化・排泄状況（最終排便）・睡眠状況：各利用者の列の値を正確に紐づけて抽出する
+・睡眠状況より下の行（就労日・特記事項・今回訪問時対応内容・次回訪問までの対応・ジャスミンLUC・次回受診日等）：項目に紐づけず、すべてまとめてフリーテキストとして抽出する
+・「〜」は使わず「から」を使うこと
+・名前末尾の「様」は除く
+・値が空欄・不明の場合は空文字にする
+・丸で囲まれている項目はその値を採用する
+・血圧は上/下の形式で記載されている（例：102/66）
+
+【出力形式】
+{
+  "patients": [
+    {
+      "name": "利用者名",
+      "temperature": "体温数値のみ（例：36.4）",
+      "bp_high": "血圧上（例：102）",
+      "bp_low": "血圧下（例：66）",
+      "pulse": "脈拍数値のみ（例：85）",
+      "spo2": "SpO2数値のみ（例：98）",
+      "chief_complaint": "主訴テキスト",
+      "medication": "内服管理の状態",
+      "appetite": "食欲変化（減・普・増のいずれか）",
+      "excretion": "排泄状況テキスト",
+      "sleep": "睡眠状況テキスト",
+      "notes": "睡眠状況より下の全項目のフリーテキスト"
+    }
+  ]
+}`;
+}
+
+let groupHomePatients = [];
+
+function showGroupHomePatientSelect(rawText) {
+  try {
+    const d = extractJson(rawText);
+    groupHomePatients = d.patients || [];
+    if (!groupHomePatients.length) { showAnalysisError('利用者データが読み取れませんでした。写真を確認して再度お試しください。'); return; }
+
+    const area = document.getElementById('groupHomeSelectArea');
+    const btns = document.getElementById('groupHomePatientBtns');
+    btns.innerHTML = '';
+    groupHomePatients.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline';
+      btn.style.cssText = 'font-size:14px;font-weight:700;padding:10px 18px;border-color:var(--accent);color:var(--accent)';
+      btn.textContent = p.name || `利用者${i+1}`;
+      btn.onclick = () => selectGroupHomePatient(i);
+      btns.appendChild(btn);
+    });
+    area.style.display = 'block';
+    // 写真モードのページに戻す
+    goStep(1);
+  } catch(e) {
+    showAnalysisError('グループホームデータの解析に失敗しました: ' + e.message);
+  }
+}
+
+function selectGroupHomePatient(index) {
+  const p = groupHomePatients[index];
+  if (!p) return;
+
+  // バイタルを入力欄に反映
+  const vMap = [
+    ['v_temp', p.temperature],
+    ['v_bp_high', p.bp_high],
+    ['v_bp_low', p.bp_low],
+    ['v_pulse', p.pulse],
+    ['v_spo2', p.spo2],
+  ];
+  vMap.forEach(([id, val]) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.value = val || '';
+    el.classList.remove('overwrite','has-value');
+    if (val) el.classList.add('has-value');
+  });
+
+  // 構造化データからSOAP生成用テキストを構築
+  const lines = [];
+  if (p.chief_complaint) lines.push(`主訴：${p.chief_complaint}`);
+  if (p.medication)      lines.push(`内服管理：${p.medication}`);
+  if (p.appetite)        lines.push(`食欲変化：${p.appetite}`);
+  if (p.excretion)       lines.push(`排泄状況：${p.excretion}`);
+  if (p.sleep)           lines.push(`睡眠状況：${p.sleep}`);
+  if (p.notes)           lines.push(`\n【特記事項・対応内容】\n${p.notes}`);
+  const summaryText = lines.join('\n');
+
+  // S欄に主訴、O欄に観察情報を事前設定
+  const oLines = [];
+  if (p.medication) oLines.push(`内服管理${p.medication}。`);
+  if (p.appetite)   oLines.push(`食欲${p.appetite}。`);
+  if (p.excretion)  oLines.push(`排泄：${p.excretion}。`);
+  if (p.sleep)      oLines.push(`睡眠：${p.sleep}。`);
+
+  document.getElementById('soap_s').value = p.chief_complaint || '';
+  document.getElementById('soap_o').value = oLines.join('');
+  document.getElementById('soap_a').value = '';
+  document.getElementById('soap_p').value = '';
+  document.getElementById('transcriptBox').value = summaryText;
+
+  // バイタル表示を更新
+  updateRowStatus('tr_temp','v_temp','ex_temp','℃');
+  updateBpStatus();
+  updateRowStatus('tr_pulse','v_pulse','ex_pulse','回/分');
+  updateRowStatus('tr_spo2','v_spo2','ex_spo2','%');
+  updateSoapStatus();
+
+  // 患者選択エリアを非表示
+  document.getElementById('groupHomeSelectArea').style.display = 'none';
+
+  // 結果画面へ
+  goStep(3);
+}
+
 // ===== 写真・PDF解析 =====
 function buildChartPrompt(targetDate) {
   return `これは訪問看護の帳票・記録表の画像です。
@@ -2339,12 +2558,14 @@ async function analyzePhoto() {
   if (!activeCount) { alert('画像またはPDFを選択してください'); return; }
 
   const isChartMode = document.getElementById('chartModeToggle').checked;
+  const isGroupHome = document.getElementById('groupHomeModeToggle').checked;
   const chartDate = document.getElementById('chartTargetDate').value.trim();
   if (isChartMode && !chartDate) { alert('読み取る日付を入力してください（例：4/6）'); return; }
 
   goStep(2); document.getElementById('progressLog').innerHTML = '';
-  addLog(isChartMode ? `📋 帳票を読み取り中（${chartDate}分）...` : `📷 ${activeCount}件の画像・PDFを読み取り中...`);
-  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>${isChartMode ? `📋 帳票を読み取り中（${chartDate}）` : '📷 画像・PDFを読み取り中'}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude Vision APIに送信しています</span></div>`);
+  const modeLabel = isChartMode ? `📋 帳票を読み取り中（${chartDate}分）...` : isGroupHome ? '🏠 グループホーム記録を読み取り中...' : `📷 ${activeCount}件の画像・PDFを読み取り中...`;
+  addLog(modeLabel);
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>${isChartMode ? `📋 帳票を読み取り中（${chartDate}）` : isGroupHome ? '🏠 グループホーム記録を読み取り中' : '📷 画像・PDFを読み取り中'}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude Vision APIに送信しています</span></div>`);
 
   // ファイルをbase64に変換
   async function toBase64(file) {
@@ -2382,15 +2603,17 @@ async function analyzePhoto() {
   }
   if (isChartMode) {
     contentBlocks.push({ type: 'text', text: buildChartPrompt(chartDate) });
+  } else if (isGroupHome) {
+    // 手動でグループホームを指定した場合
+    contentBlocks.push({ type: 'text', text: buildGroupHomePrompt() });
   } else {
-    contentBlocks.push({ type: 'text', text:
-      `これは訪問看護師の手書きメモ・帳票の画像です。利用者氏名・住所などの個人を特定する情報は含まれていません。\n` +
-      `画像に書かれているバイタルサイン・症状・ケア内容・患者の言葉などをすべて読み取り、以下の形式でSOAPを生成してください。\n\n${buildPrompt()}`
-    });
+    // 通常モード：形式を自動判定してから処理
+    contentBlocks.push({ type: 'text', text: buildAutoDetectPrompt() });
   }
 
-  addLog(isChartMode ? '🤖 Claude Vision APIで帳票を解析中...' : '🤖 Claude Vision APIでSOAP生成中...');
-  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🤖 ${isChartMode ? '帳票データを解析中' : 'SOAP形式に変換中'}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude APIが${isChartMode ? '帳票を読み取り転記データを生成' : 'SOAP記録を生成'}しています</span></div>`);
+  const analyzeLabel = isChartMode ? '帳票データを解析中' : isGroupHome ? 'グループホーム記録を解析中' : '記録形式を判定・解析中';
+  addLog(`🤖 Claude Vision APIで${analyzeLabel}...`);
+  showNotice('analyzing', `<div class="spinner" style="width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><div>🤖 ${analyzeLabel}<span class="progress-dots"><span>.</span><span>.</span><span>.</span></span><br><span style="font-size:11px;opacity:.8;font-weight:400">Claude APIが解析中です。しばらくお待ちください</span></div>`);
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -2405,7 +2628,7 @@ async function analyzePhoto() {
         'anthropic-beta': 'pdfs-2024-09-25'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 3000,
+        model: 'claude-sonnet-4-6', max_tokens: 4000,
         system: buildSystemPrompt(),
         messages: [{ role: 'user', content: contentBlocks }]
       })
@@ -2413,8 +2636,29 @@ async function analyzePhoto() {
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
-    addLog(isChartMode ? `✅ 帳票読み取り完了（${chartDate}）！` : '✅ SOAP生成完了！', true);
-    parseAndFill(data.content.map(c => c.text||'').join(''), isChartMode ? `（帳票より読み取り・${chartDate}分）` : '（写真・PDFより読み取り）');
+    const rawText = data.content.map(c => c.text||'').join('');
+    if (isChartMode) {
+      addLog(`✅ 帳票読み取り完了（${chartDate}）！`, true);
+      parseAndFill(rawText, `（帳票より読み取り・${chartDate}分）`);
+    } else if (isGroupHome) {
+      addLog('✅ グループホーム記録読み取り完了！利用者を選択してください', true);
+      showGroupHomePatientSelect(rawText);
+    } else {
+      // 自動判定：formatフィールドでグループホームか個人記録か振り分け
+      try {
+        const d = extractJson(rawText);
+        if (d.format === 'group_home') {
+          addLog('✅ グループホーム形式を自動検出！利用者を選択してください', true);
+          showGroupHomePatientSelect(rawText);
+        } else {
+          addLog('✅ SOAP生成完了！', true);
+          parseAndFill(rawText, '（写真・PDFより読み取り）');
+        }
+      } catch(e) {
+        addLog('✅ SOAP生成完了！', true);
+        parseAndFill(rawText, '（写真・PDFより読み取り）');
+      }
+    }
   } catch(e) {
     const msg = e.name === 'AbortError' ? '⏱ タイムアウト（120秒）' : e.message;
     showAnalysisError('【Claude Vision API】 ' + msg);
