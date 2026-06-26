@@ -2095,6 +2095,14 @@ function updatePhotoAnalyzeBtn() {
   const show = count > 0;
   document.getElementById('photoAnalyzeBtn').style.display = show ? 'block' : 'none';
   document.getElementById('chartModePanel').style.display = show ? 'block' : 'none';
+  // ボタンテキストも更新
+  const btn = document.querySelector('#photoAnalyzeBtn button');
+  if (!btn) return;
+  const isChart = document.getElementById('chartModeToggle')?.checked;
+  const isGH = document.getElementById('groupHomeModeToggle')?.checked;
+  if (isChart) btn.textContent = '📋 帳票を読み取り・転記データを生成';
+  else if (isGH) btn.textContent = '🏠 グループホーム記録を読み取り';
+  else btn.textContent = '🔍 読み取り・SOAP解析を開始';
 }
 
 function onChartModeToggle() {
@@ -2114,15 +2122,6 @@ function onGroupHomeModeToggle() {
   }
   document.getElementById('groupHomeSelectArea').style.display = 'none';
   updatePhotoAnalyzeBtn();
-}
-function updatePhotoAnalyzeBtn() {
-  const btn = document.querySelector('#photoAnalyzeBtn button');
-  if (!btn) return;
-  const isChart = document.getElementById('chartModeToggle').checked;
-  const isGH = document.getElementById('groupHomeModeToggle').checked;
-  if (isChart) btn.textContent = '📋 帳票を読み取り・転記データを生成';
-  else if (isGH) btn.textContent = '🏠 グループホーム記録を読み取り';
-  else btn.textContent = '🔍 読み取り・SOAP解析を開始';
 }
 
 // ===== クロップモーダル =====
