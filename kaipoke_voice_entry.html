@@ -2413,8 +2413,13 @@ function selectGroupHomePatient(index) {
     if (val) el.classList.add('has-value');
   });
 
-  // 構造化データからSOAP生成用テキストを構築
+  // 構造化データからSOAP生成用テキストを構築（バイタルも含めて再解析時に消えないようにする）
   const lines = [];
+  if (p.temperature)     lines.push(`体温：${p.temperature}℃`);
+  if (p.bp_high && p.bp_low) lines.push(`血圧：${p.bp_high}/${p.bp_low}`);
+  else if (p.bp_high)    lines.push(`血圧：${p.bp_high}`);
+  if (p.pulse)           lines.push(`脈拍：${p.pulse}回/分`);
+  if (p.spo2)            lines.push(`SpO2：${p.spo2}%`);
   if (p.chief_complaint) lines.push(`主訴：${p.chief_complaint}`);
   if (p.medication)      lines.push(`内服管理：${p.medication}`);
   if (p.appetite)        lines.push(`食欲変化：${p.appetite}`);
