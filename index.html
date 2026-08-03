@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MEGURU">
+<meta name="theme-color" content="#0f7b6c">
+<meta name="format-detection" content="telephone=no">
+<title>MEGURU — 訪問看護 シフト・配置</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --line:#dde3ea; --ink:#1c2430; --muted:#6b7887;
+  --accent:#0f7b6c; --accent-2:#e6f4f1; --warn:#c0392b; --warn-bg:#fdecea;
+  --ok:#1e7e34;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+/* タッチ操作 */
+button,.tab,.seg{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tblwrap,.tl{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+@media(hover:none){
+  button{min-height:38px;padding:8px 14px}
+  button.sm{min-height:32px;padding:6px 11px;font-size:12.5px}
+  input,select,textarea{font-size:16px;min-height:38px}   /* iOSの自動ズームを防ぐ */
+  td input,td select{min-height:34px;font-size:15px}
+  .tab{padding:9px 18px;font-size:14px}
+  .segbtn .seg{min-height:40px}
+  .blk.work,.blk.shift{min-height:26px}
+  .tl-name{-webkit-user-select:none;user-select:none}
+}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;position:sticky;top:0;z-index:50}
+.hrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+/* ロゴ */
+h1#appTitle{margin:0;display:flex;align-items:center;gap:9px;cursor:default;user-select:none}
+.logomark{width:23px;height:23px;color:var(--accent);flex:none;opacity:.8}
+#appName{font-family:Optima,"Palatino Linotype","Book Antiqua","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  font-size:20px;font-weight:500;letter-spacing:.24em;color:var(--accent);line-height:1;padding-top:2px}
+#appName::first-letter{font-size:1.16em}
+#appSub{padding-top:3px;letter-spacing:.06em;border-left:1px solid var(--line);padding-left:12px;margin-left:2px}
+/* 訪問日 */
+.datefield{display:flex;align-items:center;gap:10px;margin-left:32px;padding-left:32px;
+  border-left:1px solid var(--line);font-size:16px;font-weight:700;letter-spacing:.04em;color:var(--ink)}
+.datefield input{font-size:17px;font-weight:700;padding:7px 11px;border:2px solid var(--accent);
+  background:var(--accent-2);color:var(--accent);border-radius:8px}
+.datefield input:focus{outline:3px solid #cbe7e1}
+.dowchip{background:var(--accent);color:#fff;border-radius:999px;padding:3px 13px;font-size:14px;font-weight:700}
+@media(max-width:720px){ .datefield{margin-left:0;padding-left:0;border-left:none;width:100%} }
+.tabs{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.tab{padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;font-size:13px}
+.tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* 表示切替ボタン */
+.segbtn{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.segbtn .seg{border:none;border-radius:0;background:#fff;padding:7px 20px;font-size:13.5px;
+  border-right:1px solid var(--line);white-space:nowrap;color:var(--ink)}
+.segbtn .seg:last-child{border-right:none}
+.segbtn .seg:hover{background:#eef4f2}
+.segbtn .seg.on{background:var(--accent);color:#fff;font-weight:700}
+.segbtn .seg.on:hover{background:#0c665a}
+@media(max-width:760px){ .segbtn{flex-wrap:wrap} .segbtn .seg{padding:7px 14px;font-size:13px} }
+main{padding:16px;max-width:1400px;margin:0 auto}
+.panel{display:none}
+.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card h2 .sub{font-weight:400;color:var(--muted);font-size:12px}
+button{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);
+  background:#fff;cursor:pointer}
+button:hover{background:#f0f3f7}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+button.primary:hover{filter:brightness(1.1)}
+button.danger{color:var(--warn);border-color:#f0c8c3}
+button.sm{padding:3px 8px;font-size:12px}
+input,select,textarea{font-family:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--line);
+  border-radius:6px;background:#fff;color:inherit}
+input:focus,select:focus{outline:2px solid var(--accent-2);border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:middle}
+th{background:#eef2f6;font-weight:600;white-space:nowrap;font-size:12px}
+td input,td select{width:100%;border:1px solid transparent;background:transparent;padding:3px 4px}
+td input:hover,td select:hover{border-color:var(--line);background:#fff}
+.tblwrap{overflow-x:auto}
+/* 横スクロールしても氏名・利用者名が隠れないよう固定する */
+#staffTable td:nth-child(1),#staffTable th:nth-child(1){position:sticky;left:0;z-index:3;background:#fff;
+  box-sizing:border-box;width:40px;min-width:40px;padding-left:4px;padding-right:4px}
+#staffTable td:nth-child(2),#staffTable th:nth-child(2){position:sticky;left:40px;z-index:3;background:#fff;
+  min-width:122px;box-shadow:3px 0 4px -3px rgba(0,0,0,.28)}
+#staffTable th:nth-child(1),#staffTable th:nth-child(2){z-index:5;background:#eef2f6}
+#staffTable td:nth-child(2) input{font-weight:600;min-width:108px}
+#staffTable tr.off td:nth-child(1),#staffTable tr.off td:nth-child(2){background:#f6f7f9}
+#clientTable td:nth-child(1),#clientTable th:nth-child(1){position:sticky;left:0;z-index:3;background:#fff;
+  min-width:132px;box-shadow:3px 0 4px -3px rgba(0,0,0,.28)}
+#clientTable th:nth-child(1){z-index:5;background:#eef2f6}
+#clientTable td:nth-child(1) input{font-weight:600;min-width:118px}
+/* 列幅の目安（狭くて中身が隠れないように） */
+#staffTable td input[type=time],#clientTable td input[type=time]{min-width:92px}
+#staffTable td input[type=number],#clientTable td input[type=number]{min-width:56px}
+#clientTable th,#clientTable td{white-space:nowrap}
+#clientTable td:nth-child(2){min-width:460px}
+#clientTable td:nth-child(2) input{min-width:448px}
+#clientTable th:nth-child(3),#clientTable td:nth-child(3){width:104px;min-width:104px;text-align:center}
+.facsel{width:92px;min-width:92px;padding:3px 4px;font-size:12px}
+#clientTable th:nth-child(4),#clientTable td:nth-child(4){min-width:186px}
+#clientTable td:nth-child(11) input{min-width:110px}
+#clientTable td:nth-child(12) select{min-width:118px}
+#clientTable td:nth-child(13){min-width:280px}
+#clientTable td:nth-child(13) input{min-width:268px}
+/* 施設と入居者 */
+#clientTable tr.facrow td{background:#eef6f4}
+#clientTable tr.facrow td:nth-child(1){background:#e2f0ec}
+#clientTable tr.facrow td:nth-child(1) input{font-weight:700}
+#clientTable tr.memrow td:nth-child(1){padding-left:2px}
+#clientTable tr.memrow td:nth-child(1) input{font-weight:400}
+.memmark{color:#9fb3ad;font-size:12px;margin-right:2px}
+#staffTable td:nth-child(6) input{min-width:190px}
+#staffTable td:nth-child(7) input{min-width:150px}
+#staffTable td:nth-child(11){min-width:250px}
+#staffTable td:nth-child(11) input{min-width:238px}
+table td input[title]{text-overflow:ellipsis}
+.muted{color:var(--muted);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:var(--accent-2);color:var(--accent);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:600}
+.chip.gray{background:#eef1f5;color:var(--muted)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.note{background:#fffbe6;border:1px solid #f0e0a0;border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:12px}
+.err{background:var(--warn-bg);border:1px solid #f2c2bc;color:#8b2b20;border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+label.f{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+/* timeline */
+.tl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tl-inner{position:relative;min-width:900px}
+.tl-row{display:flex;border-bottom:1px solid var(--line);min-height:44px}
+.tl-row:last-child{border-bottom:none}
+.tl-name{width:130px;flex:none;padding:8px;border-right:1px solid var(--line);background:#fafbfc;font-size:12.5px}
+.tl-name b{display:block;font-size:13px}
+.tl-track{flex:1;position:relative;background-image:linear-gradient(90deg,#eef2f6 1px,transparent 1px);background-repeat:repeat-x}
+.tl-head{display:flex;border-bottom:1px solid var(--line);background:#f7f9fb;position:sticky;top:0}
+.tl-head .tl-name{background:#f7f9fb;font-weight:600}
+.tl-tick{position:absolute;top:0;font-size:11px;color:var(--muted);padding-left:3px;border-left:1px solid var(--line);height:100%}
+.blk{position:absolute;top:6px;height:32px;border-radius:5px;padding:2px 6px;font-size:11px;color:#fff;
+  overflow:hidden;white-space:nowrap;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.blk.work{background:#0f7b6c}
+.blk.work:hover{background:#0c665a;box-shadow:0 0 0 2px #cfe4de}
+.blk.work.pinned{background:#1c6ea4}
+.blk.work.manual{background:#a4700f}
+.blk.move{background:#b8c4d0;color:#3a4652;height:12px;top:16px;font-size:0;border-radius:2px;box-shadow:none}
+.blk.avail{background:#eaf0f5;border:1px dashed #c3ced9}
+/* 勤務バー（クリックで編集） */
+.blk.shift{top:8px;height:28px;background:#8fb8ae;color:#fff;text-align:center;line-height:24px;cursor:pointer}
+.blk.shift:hover{background:#6ea698;box-shadow:0 0 0 2px #cfe4de}
+.blk.shift.cust{background:#0f7b6c}
+.blk.shift.cust:hover{background:#0c665a}
+.tl-track.editable{cursor:pointer}
+.tl-track.editable:hover{background-color:#f6faf9}
+.tl-row.bar-edit{background:#f0f7f5;box-shadow:inset 0 0 0 2px var(--accent)}
+.be-form{padding:8px 12px;display:flex;flex-direction:column;gap:8px;min-height:44px;background:none!important}
+.be-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.be-off{font-size:12.5px;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.be-nudge{display:flex;align-items:center;gap:4px;font-size:11.5px;white-space:nowrap}
+.be-lb{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.be-note{flex:1 1 320px;min-width:260px;max-width:520px;background:#fff}
+.be-note::placeholder{color:#a9b4bf}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-top:6px;flex-wrap:wrap;align-items:center}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.metric{display:inline-block;background:#eef2f6;border-radius:6px;padding:4px 10px;margin:0 6px 6px 0;font-size:12px}
+.metric b{font-size:14px}
+.off{opacity:.45}
+/* 「任意」にしたときの淡いグレー表示 */
+td.dim{background:#f4f6f9}
+td.dim input{color:#b3bec9;background:#f4f6f9;border-color:transparent;cursor:not-allowed}
+td.dim input:hover{border-color:transparent;background:#f4f6f9}
+.dim-note{color:#b3bec9;font-size:11px}
+.pill{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line)}
+.pill.ok{background:#e7f6ec;color:var(--ok);border-color:#bfe3cb}
+.pill.ng{background:var(--warn-bg);color:var(--warn);border-color:#f2c2bc}
+details summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+/* カレンダー */
+.cal{border-collapse:collapse;width:100%}
+.cal th{background:#eef2f6;font-size:11.5px;padding:4px;text-align:center}
+.cal td{padding:0;text-align:center;font-size:11.5px;height:40px;cursor:pointer;position:relative}
+.cal td:hover{background:#f0f7f5;box-shadow:inset 0 0 0 2px var(--accent)}
+.cal .nm{text-align:left;padding:4px 8px;background:#fafbfc;white-space:nowrap;cursor:default;font-size:12.5px;position:sticky;left:0;z-index:2}
+.cal .nm:hover{background:#fafbfc;box-shadow:none}
+.cal .sat{background:#f2f7fc}
+.cal .sun,.cal .hol{background:#fdf3f2}
+.cal .tot{background:#f5f7fa;cursor:default;font-weight:600}
+.cal .tot:hover{box-shadow:none;background:#f5f7fa}
+.cel{display:block;line-height:1.25;padding:3px 1px}
+.cel .t{font-size:11px;color:#22303d;letter-spacing:-.02em}
+.cel .o{color:var(--warn);font-weight:600}
+.cel.cust{background:#e6f4f1;box-shadow:inset 2px 0 0 var(--accent)}
+.mcal td{height:94px;vertical-align:top;text-align:left;padding:4px 6px}
+.mcal .dn{font-size:12px;color:#44515f;font-weight:700}
+.mcal .big{font-size:13px;font-weight:600;margin-top:6px;display:block}
+.mcal .other{opacity:.3;cursor:default;background:#fafbfc}
+.mcal .other:hover{box-shadow:none;background:#fafbfc}
+.mcal .today .dn{background:var(--accent);color:#fff;border-radius:999px;padding:1px 7px}
+.mcal .pickd{box-shadow:inset 0 0 0 2px #f0a500}
+.cnt{font-size:11.5px;line-height:1.5;margin-top:4px;white-space:nowrap}
+.cnt i{font-style:normal;display:inline-block;width:1.9em;color:var(--muted)}
+.cnt b{font-weight:700}
+.cnt .w{color:var(--accent)}
+.cnt .r{color:var(--warn)}
+.cnt .u{color:#2b5f9e}
+.cnt .none{color:#aab4bf}
+.mcal .over{background:#fdf3f2}
+/* モーダル */
+.mask{position:fixed;inset:0;background:rgba(20,28,38,.42);display:flex;align-items:center;justify-content:center;z-index:200}
+.modal{background:#fff;border-radius:12px;padding:18px 20px;min-width:320px;max-width:92vw;max-height:88vh;overflow:auto;
+  box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 12px;font-size:15px}
+.modal .row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+/* iPad・狭い画面 */
+@media(max-width:1080px){
+  main{padding:12px}
+  .card{padding:12px}
+  .hrow{gap:8px}
+  #appSub{display:none}
+  .metric{font-size:13px}
+}
+@media(max-width:820px){
+  .grid2{grid-template-columns:1fr}
+  .bar{gap:6px}
+  .tblwrap{border:1px solid var(--line);border-radius:8px}
+  .tblwrap::after{content:'← 横にスクロールできます';display:block;font-size:11px;color:var(--muted);
+    padding:4px 8px;border-top:1px dashed var(--line)}
+  h1#appTitle{font-size:16px}
+  #appName{font-size:18px;letter-spacing:.18em}
+}
+@media print{
+  header,.tabs,.bar,.noprint{display:none!important}
+  body{background:#fff}
+  .card{border:none;page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1 id="appTitle" ondblclick="renameApp()" title="ダブルクリックで名前を変更">
+      <svg class="logomark" viewBox="0 0 28 28" aria-hidden="true">
+        <circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.3"
+                stroke-linecap="round" stroke-dasharray="52 11" transform="rotate(-60 14 14)"/>
+        <circle cx="13.7" cy="4" r="2.5" fill="currentColor"/>
+      </svg>
+      <span id="appName">MEGURU</span>
+    </h1>
+    <span class="muted" id="appSub">訪問看護 シフト・配置</span>
+    <label class="datefield">訪問日 <input type="date" id="theDate">
+      <span id="dowLabel" class="dowchip"></span></label>
+    <span style="flex:1"></span>
+    <button onclick="exportJSON()">バックアップ保存</button>
+    <label class="pill" style="cursor:pointer">読込<input type="file" id="importFile" accept=".json" style="display:none"></label>
+    <button onclick="loadSample()">サンプル投入</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<main>
+  <!-- ============ 配置 ============ -->
+  <section class="panel" data-p="plan">
+    <div class="card">
+      <div class="bar">
+        <button class="primary" onclick="runOptimize()">自動配置を作成</button>
+        <button onclick="refreshMatrix(true)">住所・移動時間を再取得</button>
+        <label class="muted">試行回数 <input type="number" id="iterN" value="200" min="1" max="2000" style="width:70px"></label>
+        <span id="planStatus" class="muted"></span>
+      </div>
+      <div id="planMsg"></div>
+      <div id="planMetrics"></div>
+    </div>
+    <div class="card" id="tlCard" style="display:none">
+      <h2>スタッフ別 タイムライン <span class="sub" id="tlDate"></span></h2>
+      <div class="tl" id="timeline"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#0f7b6c"></i>訪問</span>
+        <span><i class="sw" style="background:#b8c4d0"></i>移動</span>
+        <span><i class="sw" style="background:#eaf0f5;border:1px dashed #c3ced9"></i>勤務可能時間</span>
+        <span class="noprint">※ ブロックにカーソルを合わせると詳細</span>
+      </div>
+    </div>
+    <div class="card" id="issueCard" style="display:none">
+      <h2>手直しの確認 <span class="sub">条件に合わない配置があります</span></h2>
+      <div id="issueList"></div>
+    </div>
+    <div class="card" id="idleCard" style="display:none">
+      <h2>訪問が入らなかったスタッフ <span class="sub">勤務予定だが割り当てゼロ</span></h2>
+      <div id="idleList"></div>
+      <div class="muted" style="margin-top:8px">設定タブの「手すきを作らない度合い」を大きくすると、多少遠回りしてでも全員に振り分けます。</div>
+    </div>
+    <div class="card" id="unassignedCard" style="display:none">
+      <h2>未割当 <span class="sub">下記は自動では組めませんでした</span></h2>
+      <div id="unassigned"></div>
+    </div>
+    <div class="card" id="listCard" style="display:none">
+      <h2>訪問一覧（担当・時刻）</h2>
+      <div class="bar noprint">
+        <button onclick="exportCSV()">CSV出力</button>
+        <button onclick="window.print()">印刷 / PDF</button>
+        <button onclick="confirmPlan()">この配置を確定（担当の継続に反映）</button>
+        <span id="pinInfo" class="muted"></span>
+        <span class="muted">確定すると「誰が誰を担当したか」を記録し、次回以降できるだけ同じ担当になります</span>
+      </div>
+      <div class="tblwrap"><table id="planTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ シフト表 ============ -->
+  <section class="panel" data-p="cal">
+    <div class="card">
+      <div class="bar">
+        <div class="segbtn" id="calModeBtns"></div>
+        <select id="calMode" style="display:none" onchange="renderCal()">
+          <option value="day">日別</option>
+          <option value="week">週間</option>
+          <option value="month">月間</option>
+          <option value="grid">月間一覧</option>
+        </select>
+        <select id="calStaff" onchange="renderCal()"></select>
+        <button onclick="calShift(-1)">◀ 前</button>
+        <b id="calLabel" style="min-width:150px;text-align:center"></b>
+        <button onclick="calShift(1)">次 ▶</button>
+        <button onclick="calToday()">今日</button>
+        <span style="flex:1"></span>
+        <button onclick="window.print()">印刷</button>
+      </div>
+      <div class="bar noprint">
+        <button class="primary" onclick="document.getElementById('xlsFile').click()">Excel / CSV から取り込む</button>
+        <input type="file" id="xlsFile" accept=".xlsx,.xls,.csv" style="display:none">
+        <button onclick="dlTemplate()">取り込み用テンプレートを取得</button>
+        <button onclick="dlShiftXlsx()">今の表示をExcelに書き出す</button>
+        <button class="danger" onclick="clearRange()">この期間のシフトを消去</button>
+      </div>
+      <div id="calBody"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#e6f4f1;box-shadow:inset 2px 0 0 #0f7b6c"></i>個別に設定された日</span>
+        <span>無地＝スタッフの通常シフト</span>
+        <span class="noprint">セルをクリックすると勤務時間を編集できます</span>
+      </div>
+    </div>
+    <div id="dayPanels"></div>
+  </section>
+
+  <!-- ============ スタッフ ============ -->
+  <section class="panel" data-p="staff">
+    <div class="card">
+      <h2>スタッフ（通常シフト）</h2>
+      <div class="bar"><button onclick="addStaff()">＋ スタッフを追加</button>
+        <span class="muted">出発地＝その日の出発／帰着場所（事業所名でなく住所を推奨）</span></div>
+      <div class="tblwrap"><table id="staffTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ 利用者 ============ -->
+  <section class="panel" data-p="client">
+    <div class="card">
+      <h2>利用者・定期訪問</h2>
+      <div class="bar"><button onclick="addClient()">＋ 利用者を追加</button>
+        <button class="primary" onclick="document.getElementById('cliCsv').click()">利用者情報CSVを取り込む（住所・連絡先）</button>
+        <input type="file" id="cliCsv" accept=".csv,.xlsx,.xls" style="display:none">
+        <button onclick="fillFacilityAddr()">施設名から住所を補完</button>
+        <button onclick="linkFacilities()">施設と入居者を紐付け</button>
+        <button onclick="mergeClientSeq()">「／1回目」などを本人に統合</button>
+        <span class="muted">希望時間帯は「開始できる最早〜最遅」。所要は訪問1回の分数。</span></div>
+      <div id="cliMsg"></div>
+      <div class="tblwrap"><table id="clientTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section class="panel" data-p="config">
+    <div class="card">
+      <h2>移動・最適化の設定</h2>
+      <div class="grid2">
+        <div><label class="f">移動手段</label>
+          <select id="cf_mode" style="width:100%">
+            <option value="driving">車</option><option value="bike">自転車</option><option value="foot">徒歩</option>
+          </select></div>
+        <div><label class="f">訪問前後のバッファ（分）</label><input type="number" id="cf_buffer" style="width:100%"></div>
+        <div><label class="f">移動時間の補正倍率</label><input type="number" step="0.05" id="cf_factor" style="width:100%"></div>
+        <div><label class="f">負荷平準化の重み（0=無視 / 大=均等優先）</label><input type="number" step="0.5" id="cf_balance" style="width:100%"></div>
+        <div><label class="f">担当継続の重み（同じ利用者に同じ人）</label><input type="number" step="0.5" id="cf_cont" style="width:100%"></div>
+        <div><label class="f">待ち時間ペナルティ</label><input type="number" step="0.05" id="cf_wait" style="width:100%"></div>
+        <div><label class="f">手すきを作らない度合い（0=気にしない / 大=全員に振る）</label>
+          <input type="number" step="0.5" min="0" id="cf_spread" style="width:100%"></div>
+        <div><label class="f">オンライン地図を使う</label>
+          <select id="cf_online" style="width:100%"><option value="1">使う（住所から自動計算）</option><option value="0">使わない（直線距離で概算）</option></select></div>
+        <div><label class="f">概算時の平均速度 km/h</label><input type="number" id="cf_speed" style="width:100%"></div>
+      </div>
+      <div class="bar" style="margin-top:12px"><button class="primary" onclick="saveConfig()">設定を保存</button>
+        <button onclick="clearGeo()">住所キャッシュを消す</button>
+        <span style="flex:1"></span>
+        <button class="danger" onclick="resetToSeed()">取り込み済みの初期データに戻す</button></div>
+      <div class="note" style="margin-top:10px">
+        <b>オンライン地図について：</b>住所→座標は OpenStreetMap(Nominatim)、移動時間は OSRM の公開サーバーを使います。
+        APIキー不要ですが公開サーバーのため混雑時は失敗することがあります。失敗時は自動で直線距離＋平均速度の概算に切り替わります。
+        一度取得した住所の座標は端末内にキャッシュされ、次回以降は再取得しません。
+      </div>
+    </div>
+    <div class="card">
+      <h2>データの保存と受け渡し <span class="sub">iPadなど別の端末に移すときに使います</span></h2>
+      <div class="muted" style="margin-bottom:8px">データはこの端末のブラウザ内に保存されます。端末をまたいで共有するには、ここで書き出して相手の端末で読み込んでください。</div>
+      <div class="bar">
+        <button class="primary" onclick="exportJSON()">ファイルに書き出す</button>
+        <label class="pill" style="cursor:pointer;padding:8px 14px">ファイルから読み込む
+          <input type="file" id="importFile2" accept=".json" style="display:none"></label>
+        <button onclick="copyBackup()">コピーする（クリップボード）</button>
+        <button onclick="pasteBackup()">貼り付けて読み込む</button>
+        <span id="backupMsg" class="muted"></span>
+      </div>
+      <div class="bar"><button onclick="renameApp()">アプリ名を変更</button>
+        <span class="muted">現在：<b id="appNameNow"></b></span></div>
+    </div>
+    <div class="card">
+      <h2>取り込みルール <span class="sub">スケジュール表を取り込むときの判断を覚えておきます</span></h2>
+      <div class="bar">
+        <label><input type="checkbox" id="rl_mseq" style="width:auto"
+          onchange="DB.rules.mergeSeq=this.checked;save()"> 同日2回目以降を1人の利用者にまとめる</label>
+        <span style="flex:1"></span>
+        <button onclick="addRule('alias')">＋ 名寄せを追加</button>
+        <button onclick="addRule('exclude')">＋ 除外語を追加</button>
+      </div>
+      <div class="grid2">
+        <div>
+          <label class="f">名寄せ（この表記 → この利用者として扱う）</label>
+          <div class="tblwrap"><table id="aliasTable"></table></div>
+        </div>
+        <div>
+          <label class="f">除外（訪問として扱わない項目）</label>
+          <div class="tblwrap"><table id="exclTable"></table></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>住所キャッシュ <span class="sub">緯度・経度は直接書き換えられます（例：35.36123, 136.61234）</span></h2>
+      <div class="bar"><button class="primary" onclick="testGeo()">地図の接続を確認</button>
+        <span class="muted">住所が特定できないときは、まずこれを実行してください</span></div>
+      <div id="geoTest"></div>
+      <div class="tblwrap"><table id="geoTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<script type="application/json" id="seedData">{"staff":[],"clients":[],"ovr":{},"extra":{},"geo":{},"hist":{},"cfg":{"mode":"driving","buffer":5,"factor":1.15,"balance":2,"cont":3,"wait":0.25,"online":1,"speed":20},"rules":{"alias":{},"exclude":[],"mergeSeq":true},"app":{"name":"MEGURU","sub":"訪問看護 シフト・配置"}}</script>
+<script>
+/* ==========================================================
+   データ
+========================================================== */
+const KEY='hv_shift_v1';
+const DEF_CFG={mode:'driving',buffer:5,factor:1.15,balance:2,cont:3,wait:0.25,online:1,speed:20,spread:1.5};
+const DEF_RULES={alias:{},exclude:[],mergeSeq:true};
+const DEF_APP={name:'MEGURU',sub:'訪問看護 シフト・配置'};
+/* 初期データ：スケジュール表と利用者情報CSVを取り込み済みの状態 */
+const SEED=JSON.parse(document.getElementById('seedData').textContent);
+let DB=load();
+
+function resetToSeed(){
+  if(!confirm('今の内容を消して、取り込み済みの初期データに戻します。よろしいですか？')) return;
+  DB=JSON.parse(JSON.stringify(SEED));
+  DB.cfg=Object.assign({},DEF_CFG,DB.cfg||{});
+  DB.rules=Object.assign({},DEF_RULES,DB.rules||{});
+  DB.app=Object.assign({},DEF_APP,DB.app||{});
+  save(); MATRIX=null; renderAll();
+}
+function load(){
+  try{
+    const o=JSON.parse(localStorage.getItem(KEY));
+    // 中身が空の保存データ（以前のバージョンの名残）は無いものとして扱い、初期データを使う
+    if(o&&Array.isArray(o.staff)&&(o.staff.length||(o.clients||[]).length)){
+      o.cfg=Object.assign({},DEF_CFG,o.cfg||{});
+      o.rules=Object.assign({},DEF_RULES,o.rules||{});
+      o.rules.alias=o.rules.alias||{}; o.rules.exclude=o.rules.exclude||[];
+      o.app=Object.assign({},DEF_APP,o.app||{});
+      return normalize(o);
+    }
+  }catch(e){}
+  // 初回起動時は取り込み済みの初期データを使う
+  const s=JSON.parse(JSON.stringify(SEED));
+  s.cfg=Object.assign({},DEF_CFG,s.cfg||{});
+  s.rules=Object.assign({},DEF_RULES,s.rules||{});
+  s.app=Object.assign({},DEF_APP,s.app||{});
+  s.ovr=s.ovr||{}; s.extra=s.extra||{}; s.geo=s.geo||{}; s.hist=s.hist||{};
+  normalize(s);
+  return s;
+}
+/* 古い保存データに新しい項目を補う */
+function normalize(d){
+  (d.clients||[]).forEach(c=>{
+    if(c.times==null) c.times=1;
+    if(c.gap==null) c.gap=120;
+    if(!Array.isArray(c.days)) c.days=[];
+  });
+  (d.staff||[]).forEach(s=>{ if(s.br_opt==null) s.br_opt=true; });
+  return d;
+}
+function renameApp(){
+  const n=prompt('アプリ名を入力してください',DB.app.name); if(n===null) return;
+  const s=prompt('副題（空欄でも構いません）',DB.app.sub); if(s===null) return;
+  DB.app={name:n.trim()||DEF_APP.name,sub:s.trim()};
+  save(); applyAppName();
+}
+function applyAppName(){
+  document.getElementById('appName').textContent=DB.app.name;
+  const an=document.getElementById('appNameNow'); if(an) an.textContent=DB.app.name;
+  document.getElementById('appSub').textContent=DB.app.sub;
+  document.title=DB.app.name+(DB.app.sub?' — '+DB.app.sub:'');
+}
+function save(){ localStorage.setItem(KEY,JSON.stringify(DB)); }
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+/* ==========================================================
+   ユーティリティ
+========================================================== */
+const DOW=['日','月','火','水','木','金','土'];
+function m2s(m){ if(m==null||isNaN(m))return''; m=Math.round(m); const h=Math.floor(m/60), x=m%60;
+  return String(h).padStart(2,'0')+':'+String(x).padStart(2,'0'); }
+function s2m(s){ if(!s)return null; const p=String(s).split(':'); if(p.length<2)return null;
+  const h=+p[0], x=+p[1]; if(isNaN(h)||isNaN(x))return null; return h*60+x; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayStr(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dowOf(ds){ return new Date(ds+'T00:00:00').getDay(); }
+function splitSkills(s){ return String(s||'').split(/[,、\/\s]+/).filter(Boolean); }
+
+/* ==========================================================
+   タブ
+========================================================== */
+const TABS=[['plan','配置を作る'],['cal','シフト表'],['staff','スタッフ'],['client','利用者'],['config','設定']];
+let curTab='plan';
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>
+    `<div class="tab ${k===curTab?'on':''}" onclick="go('${k}')">${l}</div>`).join('');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.dataset.p===curTab));
+}
+function go(k){ curTab=k; renderTabs(); renderAll(); }
+
+/* ==========================================================
+   スタッフ表
+========================================================== */
+function addStaff(){ DB.staff.push({id:uid(),name:'新規スタッフ',start:'09:00',end:'17:30',
+  base:'',skills:'',br_opt:true,br_from:'12:00',br_to:'13:00',br_dur:45,active:true}); save(); renderStaff(); }
+function delStaff(id){ if(!confirm('削除しますか？'))return; DB.staff=DB.staff.filter(s=>s.id!==id); save(); renderStaff(); }
+function upd(arr,id,f,v){ const o=arr.find(x=>x.id===id); if(!o)return; o[f]=v; save(); }
+
+function renderStaff(){
+  const t=document.getElementById('staffTable');
+  t.innerHTML=`<thead><tr><th style="width:34px">在籍</th><th>氏名</th><th>通常 開始</th><th>通常 終了</th>
+    <th>曜日別</th><th title="この人が担当できる利用者を限定します">担当限定</th>
+    <th>出発地（住所）</th><th>資格・対応可（カンマ区切り）</th>
+    <th style="width:44px" title="チェックすると休憩時刻を決めずに配置します">休憩<br>任意</th>
+    <th>休憩帯</th><th>休憩分</th><th>備考・条件</th><th style="width:44px"></th></tr></thead>
+    <tbody>`+DB.staff.map(s=>{
+    const opt=s.br_opt!==false;          // 既定は「任意」
+    const d=opt?' class="dim"':'';
+    const ro=opt?' readonly tabindex="-1"':'';
+    return `<tr class="${s.active===false?'off':''}">
+    <td style="text-align:center"><input type="checkbox" ${s.active!==false?'checked':''} style="width:auto"
+      onchange="upd(DB.staff,'${s.id}','active',this.checked);renderStaff()"></td>
+    <td><input value="${esc(s.name)}" oninput="upd(DB.staff,'${s.id}','name',this.value)"></td>
+    <td><input type="time" value="${esc(s.start)}" onchange="upd(DB.staff,'${s.id}','start',this.value)"></td>
+    <td><input type="time" value="${esc(s.end)}" onchange="upd(DB.staff,'${s.id}','end',this.value)"></td>
+    <td style="white-space:nowrap">${weekLabel(s)}
+      <button class="sm" onclick="editWeek('${s.id}')">設定</button></td>
+    <td style="white-space:nowrap">${onlyLabel(s)}
+      <button class="sm" onclick="editOnly('${s.id}')">設定</button></td>
+    <td><input value="${esc(s.base)}" placeholder="例）東京都新宿区西新宿2-8-1" title="${esc(s.base)}" oninput="upd(DB.staff,'${s.id}','base',this.value)"></td>
+    <td><input value="${esc(s.skills)}" placeholder="例）看護師,点滴,吸引" oninput="upd(DB.staff,'${s.id}','skills',this.value)"></td>
+    <td style="text-align:center"><input type="checkbox" ${opt?'checked':''} style="width:auto"
+      title="任意＝休憩の時刻を決めずに配置します"
+      onchange="upd(DB.staff,'${s.id}','br_opt',this.checked);renderStaff()"></td>
+    <td${d}><span style="display:flex;gap:2px">
+        <input type="time"${ro} value="${esc(s.br_from||'')}" onchange="upd(DB.staff,'${s.id}','br_from',this.value)">
+        <input type="time"${ro} value="${esc(s.br_to||'')}" onchange="upd(DB.staff,'${s.id}','br_to',this.value)"></span></td>
+    <td${d}><input type="number"${ro} value="${s.br_dur==null?'':s.br_dur}" onchange="upd(DB.staff,'${s.id}','br_dur',+this.value)"></td>
+    <td><input value="${esc(s.note||'')}" placeholder="条件・メモ" title="${esc(s.note||'')}"
+        oninput="upd(DB.staff,'${s.id}','note',this.value)"></td>
+    <td><button class="sm danger" onclick="delStaff('${s.id}')">削除</button></td></tr>`;}).join('')+`</tbody>`;
+  if(!DB.staff.length) t.innerHTML+=`<tbody><tr><td colspan="12" class="muted">スタッフを追加してください</td></tr></tbody>`;
+}
+
+/* ==========================================================
+   利用者表
+========================================================== */
+function addClient(){ DB.clients.push({id:uid(),name:'新規利用者',addr:'',days:[],from:'09:00',to:'12:00',
+  dur:60,need:1,times:1,gap:120,skills:'',pref:'',note:''}); save(); renderClient(); }
+function delClient(id){ if(!confirm('削除しますか？'))return; DB.clients=DB.clients.filter(c=>c.id!==id); save(); renderClient(); }
+function toggleDay(id,d,on){ const c=DB.clients.find(x=>x.id===id); if(!c)return;
+  c.days=c.days||[]; c.days=on?[...new Set([...c.days,d])]:c.days.filter(x=>x!==d); save(); }
+
+function renderClient(){
+  const t=document.getElementById('clientTable');
+  const staffOpt=id=>`<option value="">指定なし</option>`+DB.staff.map(s=>
+    `<option value="${s.id}" ${id===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const facOpt=c=>`<option value="">—</option>`
+    +facilities().filter(f=>f.id!==c.id).map(f=>
+      `<option value="${f.id}" ${c.fac===f.id?'selected':''}>${esc(f.name)}</option>`).join('');
+  t.innerHTML=`<thead><tr><th>利用者</th><th>住所</th><th title="施設と入居者の関係">施設</th><th>曜日</th><th>最早開始</th><th>最遅開始</th>
+    <th title="1回の訪問にかかる時間">所要<br>(分)</th><th title="同時に訪問するスタッフの人数。2名なら2人が同じ時刻に割り当てられます">同時<br>人数</th><th title="1日に何回訪問するか">1日の<br>回数</th>
+    <th title="同じ日の訪問どうしを何分以上あけるか">最短<br>間隔</th>
+    <th>必要スキル</th><th>優先担当</th><th>備考</th><th style="width:44px"></th></tr></thead><tbody>`
+    +clientOrder().map(c=>{ const times=Math.max(1,+c.times||1); const dim=times>1?'':' class="dim"';
+    const n=c.isFac?facMembers(c.id).length:0;
+    return `<tr class="${c.isFac?'facrow':(c.fac?'memrow':'')}">
+    <td>${c.fac?'<span class="memmark">└</span>':''}<input value="${esc(c.name)}"
+        oninput="upd(DB.clients,'${c.id}','name',this.value)"></td>
+    <td><input value="${esc(c.addr)}" placeholder="住所" title="${esc(c.addr)}" oninput="upd(DB.clients,'${c.id}','addr',this.value)"></td>
+    <td style="white-space:nowrap">${c.isFac
+      ? `<span class="chip">施設 ${n}名</span>`
+      : `<select onchange="setFac('${c.id}',this.value)" class="facsel">${facOpt(c)}</select>`}</td>
+    <td style="white-space:nowrap">${DOW.map((d,i)=>`<label style="font-size:11px;margin-right:2px">
+      <input type="checkbox" style="width:auto" ${(c.days||[]).includes(i)?'checked':''}
+      onchange="toggleDay('${c.id}',${i},this.checked);renderClient()">${d}</label>`).join('')}</td>
+    <td><input type="time" value="${esc(c.from)}" onchange="upd(DB.clients,'${c.id}','from',this.value)"></td>
+    <td><input type="time" value="${esc(c.to)}" onchange="upd(DB.clients,'${c.id}','to',this.value)"></td>
+    <td><input type="number" value="${c.dur}" onchange="upd(DB.clients,'${c.id}','dur',+this.value)"></td>
+    <td><input type="number" min="1" value="${c.need||1}" onchange="upd(DB.clients,'${c.id}','need',+this.value)"></td>
+    <td><input type="number" min="1" max="6" value="${times}"
+        onchange="upd(DB.clients,'${c.id}','times',Math.max(1,+this.value||1));renderClient()"></td>
+    <td${dim}><input type="number" min="0" step="15" value="${c.gap==null?120:c.gap}" ${times>1?'':'readonly tabindex="-1"'}
+        onchange="upd(DB.clients,'${c.id}','gap',+this.value)"></td>
+    <td><input value="${esc(c.skills)}" placeholder="例）吸引" oninput="upd(DB.clients,'${c.id}','skills',this.value)"></td>
+    <td><select onchange="upd(DB.clients,'${c.id}','pref',this.value)">${staffOpt(c.pref)}</select></td>
+    <td><input value="${esc(c.note)}" title="${esc(c.note)}" placeholder="備考" oninput="upd(DB.clients,'${c.id}','note',this.value)"></td>
+    <td><button class="sm danger" onclick="delClient('${c.id}')">削除</button></td></tr>`;}).join('')+`</tbody>`;
+  if(!DB.clients.length) t.innerHTML+=`<tbody><tr><td colspan="14" class="muted">利用者が登録されていません</td></tr></tbody>`;
+  const msg=document.getElementById('cliMsg');
+  if(msg&&!DB.clients.length&&SEED&&SEED.clients&&SEED.clients.length)
+    msg.innerHTML=`<div class="note"><b>利用者が空です。</b>
+      このアプリには、スケジュール表と利用者情報CSVを取り込み済みのデータ（利用者
+      ${SEED.clients.length}件・スタッフ${SEED.staff.length}名）が入っています。
+      <button class="primary" onclick="resetToSeed()">初期データを読み込む</button></div>`;
+  else if(msg&&DB.clients.length) {
+    const na=DB.clients.filter(c=>!c.addr);
+    msg.innerHTML= na.length
+      ? `<div class="note">利用者 <b>${DB.clients.length}</b> 件（定期訪問 ${DB.clients.filter(c=>c.days.length).length} 件）。
+         住所が未入力：<b>${na.length}</b> 件 — ${esc(na.slice(0,8).map(c=>c.name).join('、'))}${na.length>8?' ほか':''}</div>`
+      : `<div class="note">利用者 <b>${DB.clients.length}</b> 件、住所はすべて入力済みです。</div>`;
+  }
+}
+
+/* ==========================================================
+   当日変更
+========================================================== */
+function curDate(){ return document.getElementById('theDate').value||todayStr(); }
+function ovrOf(d){ DB.ovr[d]=DB.ovr[d]||{}; return DB.ovr[d]; }
+function setOvr(sid,f,v){ const o=ovrOf(curDate()); o[sid]=o[sid]||{}; o[sid][f]=v; save(); }
+
+function renderOvr(){
+  const t=document.getElementById('ovrTable'); if(!t) return;
+  const d=curDate(), o=ovrOf(d);
+  t.innerHTML=`<thead><tr><th>スタッフ</th><th>通常</th><th style="width:50px">休</th><th>変更 開始</th><th>変更 終了</th><th>メモ</th></tr></thead><tbody>`
+   +DB.staff.filter(s=>s.active!==false).map(s=>{ const v=o[s.id]||{};
+    return `<tr class="${v.off?'off':''}">
+    <td>${esc(s.name)}</td><td class="muted">${esc(s.start)}〜${esc(s.end)}</td>
+    <td style="text-align:center"><input type="checkbox" style="width:auto" ${v.off?'checked':''}
+      onchange="setOvr('${s.id}','off',this.checked);renderOvr()"></td>
+    <td><input type="time" value="${esc(v.start||'')}" onchange="setOvr('${s.id}','start',this.value)"></td>
+    <td><input type="time" value="${esc(v.end||'')}" onchange="setOvr('${s.id}','end',this.value)"></td>
+    <td><input value="${esc(v.note||'')}" oninput="setOvr('${s.id}','note',this.value)"></td></tr>`;}).join('')+`</tbody>`;
+  if(!DB.staff.length) t.innerHTML+=`<tbody><tr><td colspan="6" class="muted">スタッフ未登録</td></tr></tbody>`;
+}
+
+function extraOf(d){ DB.extra[d]=DB.extra[d]||[]; return DB.extra[d]; }
+function addExtra(){ extraOf(curDate()).push({id:uid(),name:'臨時訪問',addr:'',from:'09:00',to:'17:00',
+  dur:45,need:1,times:1,gap:120,skills:'',pref:''}); save(); renderDayPanels(); }
+function delExtra(id){ const d=curDate(); DB.extra[d]=extraOf(d).filter(x=>x.id!==id); save(); renderDayPanels(); }
+function updExtra(id,f,v){ const o=extraOf(curDate()).find(x=>x.id===id); if(o){o[f]=v; save();} }
+
+function renderExtra(){
+  const t=document.getElementById('extraTable'); if(!t) return;
+  const list=extraOf(curDate());
+  const staffOpt=id=>`<option value="">指定なし</option>`+DB.staff.map(s=>
+    `<option value="${s.id}" ${id===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  t.innerHTML=`<thead><tr><th>名称</th><th>住所</th><th>最早開始</th><th>最遅開始</th><th>所要(分)</th>
+    <th>人数</th><th>必要スキル</th><th>優先担当</th><th style="width:44px"></th></tr></thead><tbody>`
+   +list.map(c=>`<tr>
+    <td><input value="${esc(c.name)}" oninput="updExtra('${c.id}','name',this.value)"></td>
+    <td><input value="${esc(c.addr)}" oninput="updExtra('${c.id}','addr',this.value)"></td>
+    <td><input type="time" value="${esc(c.from)}" onchange="updExtra('${c.id}','from',this.value)"></td>
+    <td><input type="time" value="${esc(c.to)}" onchange="updExtra('${c.id}','to',this.value)"></td>
+    <td><input type="number" value="${c.dur}" onchange="updExtra('${c.id}','dur',+this.value)"></td>
+    <td><input type="number" min="1" value="${c.need||1}" onchange="updExtra('${c.id}','need',+this.value)"></td>
+    <td><input value="${esc(c.skills)}" oninput="updExtra('${c.id}','skills',this.value)"></td>
+    <td><select onchange="updExtra('${c.id}','pref',this.value)">${staffOpt(c.pref)}</select></td>
+    <td><button class="sm danger" onclick="delExtra('${c.id}')">削除</button></td></tr>`).join('')+`</tbody>`;
+  if(!list.length) t.innerHTML+=`<tbody><tr><td colspan="9" class="muted">臨時訪問はありません</td></tr></tbody>`;
+}
+
+/* ==========================================================
+   シフトカレンダー
+========================================================== */
+let calAnchor=null;   // 表示中の基準日 'YYYY-MM-DD'
+
+function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dobj(s){ return new Date(s+'T00:00:00'); }
+function addDays(s,n){ const d=dobj(s); d.setDate(d.getDate()+n); return dstr(d); }
+function weekStart(s){ const d=dobj(s); d.setDate(d.getDate()-d.getDay()); return dstr(d); }
+
+/* その日のスタッフの勤務時間（個別設定がなければ通常シフト） */
+function shiftOf(date,sid){
+  const s=DB.staff.find(x=>x.id===sid); if(!s) return null;
+  const v=(DB.ovr[date]||{})[sid]||{};          // その日だけの変更
+  const w=(s.wk||{})[dowOf(date)]||{};          // 曜日別の通常シフト
+  const hasOvr=!!(v.off||v.start||v.end);
+  return {off: hasOvr?!!v.off:!!w.off,
+          start: v.start||w.start||s.start,
+          end:   v.end  ||w.end  ||s.end,
+          custom: hasOvr, byWeek: !!(w.off||w.start||w.end), note:v.note||''};
+}
+/* 曜日別の通常シフトを編集 */
+function editWeek(sid){
+  const s=DB.staff.find(x=>x.id===sid); if(!s) return;
+  const w=s.wk||{};
+  modal(`<h3>${esc(s.name)}　曜日別の通常シフト</h3>
+    <div class="muted" style="margin-bottom:10px">空欄の曜日は通常シフト（${esc(s.start)}〜${esc(s.end)}）を使います。</div>
+    <table><thead><tr><th>曜日</th><th style="width:50px">休</th><th>開始</th><th>終了</th></tr></thead><tbody>
+    ${DOW.map((d,i)=>{const x=w[i]||{}; return `<tr class="${i===0?'sun':i===6?'sat':''}">
+      <td>${d}</td>
+      <td style="text-align:center"><input type="checkbox" class="wkOff" data-d="${i}" style="width:auto" ${x.off?'checked':''}></td>
+      <td><input type="time" class="wkS" data-d="${i}" value="${esc(x.start||'')}"></td>
+      <td><input type="time" class="wkE" data-d="${i}" value="${esc(x.end||'')}"></td></tr>`;}).join('')}
+    </tbody></table>
+    <div class="foot"><button onclick="closeModal()">閉じる</button>
+      <button onclick="clearWeek('${sid}')">すべて通常に戻す</button>
+      <button class="primary" onclick="saveWeek('${sid}')">保存</button></div>`);
+}
+function saveWeek(sid){
+  const s=DB.staff.find(x=>x.id===sid); const w={};
+  document.querySelectorAll('.wkOff').forEach(x=>{ const d=+x.dataset.d; if(x.checked)(w[d]=w[d]||{}).off=true; });
+  document.querySelectorAll('.wkS').forEach(x=>{ const d=+x.dataset.d; if(x.value)(w[d]=w[d]||{}).start=x.value; });
+  document.querySelectorAll('.wkE').forEach(x=>{ const d=+x.dataset.d; if(x.value)(w[d]=w[d]||{}).end=x.value; });
+  s.wk=w; save(); closeModal(); renderStaff(); renderCal(); renderOvr();
+}
+function clearWeek(sid){
+  const s=DB.staff.find(x=>x.id===sid); delete s.wk;
+  save(); closeModal(); renderStaff(); renderCal(); renderOvr();
+}
+/* 担当できる利用者を限定する */
+function editOnly(sid){
+  const s=DB.staff.find(x=>x.id===sid); if(!s) return;
+  const only=s.only||[];
+  const list=DB.clients.slice().sort((a,b)=>
+    (b.days.length?1:0)-(a.days.length?1:0)||a.name.localeCompare(b.name,'ja'));
+  modal(`<h3>${esc(s.name)}　担当できる利用者</h3>
+    <div class="note">1件もチェックしなければ<b>制限なし</b>（誰でも担当できる）です。
+      チェックすると、その利用者だけを担当するようになります。</div>
+    <div class="bar"><button class="sm" onclick="onlyAll(0)">すべて解除（制限なし）</button>
+      <span id="onlyCount" class="muted"></span></div>
+    <div class="tblwrap" style="max-height:46vh;overflow:auto"><table>
+      <thead><tr><th style="width:30px"></th><th>利用者</th><th>曜日</th><th>住所</th></tr></thead><tbody>
+      ${list.map(c=>`<tr>
+        <td><input type="checkbox" class="onlyChk" data-id="${c.id}" style="width:auto"
+            ${only.includes(c.id)?'checked':''} onchange="onlyCount()"></td>
+        <td>${esc(c.name)}</td>
+        <td>${c.days.length?c.days.map(d=>DOW[d]).join(''):'<span class="muted">—</span>'}</td>
+        <td class="muted">${esc((c.addr||'').slice(0,26))}</td></tr>`).join('')}
+      </tbody></table></div>
+    <div class="foot"><button onclick="closeModal()">閉じる</button>
+      <button class="primary" onclick="saveOnly('${sid}')">保存</button></div>`);
+  onlyCount();
+}
+function onlyCount(){
+  const n=[...document.querySelectorAll('.onlyChk')].filter(x=>x.checked).length;
+  const el=document.getElementById('onlyCount');
+  if(el) el.textContent = n? n+'名に限定します' : '制限なし（全員を担当できます）';
+}
+function onlyAll(v){ document.querySelectorAll('.onlyChk').forEach(x=>x.checked=!!v); onlyCount(); }
+function saveOnly(sid){
+  const s=DB.staff.find(x=>x.id===sid);
+  const ids=[...document.querySelectorAll('.onlyChk')].filter(x=>x.checked).map(x=>x.dataset.id);
+  if(ids.length) s.only=ids; else delete s.only;
+  save(); closeModal(); renderStaff();
+}
+function onlyLabel(s){
+  const n=(s.only||[]).length;
+  if(!n) return '<span class="muted">制限なし</span>';
+  const names=s.only.map(id=>(DB.clients.find(c=>c.id===id)||{}).name).filter(Boolean);
+  return `<span class="chip" title="${esc(names.join('、'))}">${n>2?n+'名限定':esc(names.join('・'))}</span>`;
+}
+function weekLabel(s){
+  const w=s.wk||{}; const ks=Object.keys(w);
+  if(!ks.length) return '<span class="muted">—</span>';
+  const off=ks.filter(k=>w[k].off).map(k=>DOW[k]);
+  const t=ks.filter(k=>!w[k].off).length;
+  return (off.length?'<span class="chip gray">'+off.join('')+'休</span>':'')
+        +(t?'<span class="chip">'+t+'曜日 別時間</span>':'');
+}
+function shiftMin(date,sid){
+  const w=shiftOf(date,sid); if(!w||w.off) return 0;
+  const a=s2m(w.start), b=s2m(w.end); if(a==null||b==null) return 0;
+  return Math.max(0,b-a);
+}
+/* その日の集計：勤務人数・休暇人数・利用者数 */
+function dayStat(date){
+  const act=DB.staff.filter(s=>s.active!==false);
+  let work=0,off=0,min=0;
+  act.forEach(s=>{ const w=shiftOf(date,s.id); if(w.off) off++; else {work++; min+=shiftMin(date,s.id);} });
+  const v=buildVisits(date);
+  return {work,off,min,users:v.length,heads:v.reduce((a,x)=>a+x.need,0),
+          load:v.reduce((a,x)=>a+x.dur*x.need,0)};
+}
+function calRange(){
+  const mode=document.getElementById('calMode').value, a=calAnchor;
+  if(mode==='day') return [a,a];
+  if(mode==='week'){ const s=weekStart(a); return [s,addDays(s,6)]; }
+  const d=dobj(a); const first=dstr(new Date(d.getFullYear(),d.getMonth(),1));
+  const last=dstr(new Date(d.getFullYear(),d.getMonth()+1,0));
+  return [first,last];
+}
+function calShift(n){
+  const mode=document.getElementById('calMode').value;
+  if(mode==='day') calAnchor=addDays(calAnchor,n);
+  else if(mode==='week') calAnchor=addDays(calAnchor,7*n);
+  else { const d=dobj(calAnchor); d.setDate(1); d.setMonth(d.getMonth()+n); calAnchor=dstr(d); }
+  if(mode==='day') syncDate(calAnchor);
+  renderCal();
+}
+function calToday(){ calAnchor=todayStr(); syncDate(calAnchor); renderCal(); }
+/* 表示切替（ボタン） */
+const CAL_MODES=[['day','日別'],['week','週間'],['month','月間'],['grid','月間一覧']];
+function renderCalModes(){
+  const box=document.getElementById('calModeBtns'); if(!box) return;
+  const cur=document.getElementById('calMode').value;
+  box.innerHTML=CAL_MODES.map(([k,l])=>
+    `<button class="seg${k===cur?' on':''}" onclick="setCalMode('${k}')">${esc(l)}</button>`).join('');
+}
+function setCalMode(k){
+  const s=document.getElementById('calMode');
+  if(s.value===k) return;
+  s.value=k; BAR_EDIT=null; renderCal();
+}
+function syncDate(d){ document.getElementById('theDate').value=d; MATRIX=null;
+  document.getElementById('dowLabel').textContent=DOW[dowOf(d)]+'曜日'; renderOvr(); renderExtra(); }
+/* 月間カレンダーの日付をクリック → その日のページへ */
+function openDay(d){
+  calAnchor=d; syncDate(d);
+  document.getElementById('calMode').value='day';
+  renderCal();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderCal(){
+  if(!calAnchor) calAnchor=curDate();
+  const mode=document.getElementById('calMode').value;
+  renderCalModes();
+  const sel=document.getElementById('calStaff');
+  const keep=sel.value;
+  sel.innerHTML=`<option value="">全スタッフ</option>`+DB.staff.filter(s=>s.active!==false)
+    .map(s=>`<option value="${s.id}" ${keep===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const sid=sel.value;
+  const [f,t]=calRange();
+  const d=dobj(calAnchor);
+  document.getElementById('calLabel').textContent =
+    (mode==='month'||mode==='grid') ? d.getFullYear()+'年 '+(d.getMonth()+1)+'月'
+    : mode==='week' ? f.replace(/-/g,'/')+' 〜 '+t.slice(5).replace('-','/')
+    : calAnchor.replace(/-/g,'/')+'（'+DOW[dowOf(calAnchor)]+'）';
+
+  const body=document.getElementById('calBody');
+  if(!DB.staff.filter(s=>s.active!==false).length){ body.innerHTML='<div class="muted">スタッフが登録されていません。</div>'; return; }
+  if(mode==='day') body.innerHTML=dayBarHTML(calAnchor);
+  else if(mode==='month') body.innerHTML=monthCalHTML(sid);
+  else body.innerHTML=gridHTML(f,t,sid?[sid]:null);
+  if(mode!=='day') BAR_EDIT=null;
+  renderDayPanels();
+}
+
+/* --- 行=スタッフ / 列=日付 のグリッド（月間・週間 共通） --- */
+function gridHTML(f,t,only){
+  const days=[]; for(let x=f;x<=t;x=addDays(x,1)) days.push(x);
+  const staff=DB.staff.filter(s=>s.active!==false && (!only||only.includes(s.id)));
+  const cls=d=>{const w=dowOf(d); return w===0?'sun':w===6?'sat':'';};
+  let h=`<div class="tblwrap"><table class="cal"><thead><tr><th class="nm">スタッフ</th>`;
+  h+=days.map(d=>`<th class="${cls(d)}">${+d.slice(8)}<br><span style="font-weight:400">${DOW[dowOf(d)]}</span></th>`).join('');
+  h+=`<th class="tot">合計</th></tr></thead><tbody>`;
+  staff.forEach(s=>{
+    let sum=0;
+    h+=`<tr><td class="nm">${esc(s.name)}<br><span class="muted" style="font-size:11px">通常 ${esc(s.start)}〜${esc(s.end)}</span></td>`;
+    days.forEach(d=>{
+      const w=shiftOf(d,s.id); sum+=shiftMin(d,s.id);
+      h+=`<td class="${cls(d)}" onclick="editShift('${d}','${s.id}')">`+cellHTML(w)+`</td>`;
+    });
+    h+=`<td class="tot">${(sum/60).toFixed(1)}h</td></tr>`;
+  });
+  // 日別の勤務人数
+  h+=`<tr><td class="nm tot">勤務人数</td>`+days.map(d=>{
+    const n=DB.staff.filter(s=>s.active!==false&&!shiftOf(d,s.id).off).length;
+    return `<td class="tot ${cls(d)}">${n}</td>`;}).join('')+`<td class="tot"></td></tr>`;
+  return h+`</tbody></table></div>`;
+}
+function cellHTML(w){
+  if(!w) return '';
+  if(w.off) return `<span class="cel cust"><span class="t o">休</span></span>`;
+  return `<span class="cel ${w.custom?'cust':''}"><span class="t">${esc(w.start)}</span><br><span class="t">${esc(w.end)}</span></span>`;
+}
+
+/* --- 月間カレンダー（実カレンダーと同じ7列） --- */
+function monthCalHTML(sid){
+  const s=sid?DB.staff.find(x=>x.id===sid):null;
+  const d=dobj(calAnchor), y=d.getFullYear(), m=d.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  const cells=[]; for(let i=0;i<first.getDay();i++) cells.push(null);
+  for(let i=1;i<=last.getDate();i++) cells.push(dstr(new Date(y,m,i)));
+  while(cells.length%7) cells.push(null);
+
+  // 月の合計
+  let mWork=0,mOff=0,mUsers=0,mMin=0,mHeads=0,myDays=0,myMin=0;
+  cells.filter(Boolean).forEach(day=>{
+    const st=dayStat(day);
+    mWork+=st.work; mOff+=st.off; mUsers+=st.users; mMin+=st.min; mHeads+=st.heads;
+    if(sid){ const mm=shiftMin(day,sid); myMin+=mm; if(mm>0) myDays++; }
+  });
+  let head = sid
+    ? `<div class="metric">${esc(s.name)}</div><div class="metric">出勤 <b>${myDays}</b> 日</div>
+       <div class="metric">合計勤務 <b>${(myMin/60).toFixed(1)}</b> 時間</div>
+       <div class="metric">月内の訪問予定 <b>${mUsers}</b> 件</div>`
+    : `<div class="metric">延べ勤務 <b>${mWork}</b> 人日</div>
+       <div class="metric">延べ休暇 <b>${mOff}</b> 人日</div>
+       <div class="metric">勤務時間計 <b>${(mMin/60).toFixed(0)}</b> 時間</div>
+       <div class="metric">訪問予定 <b>${mUsers}</b> 件 / 延べ <b>${mHeads}</b> 名</div>`;
+
+  let h=head+`<table class="cal mcal"><thead><tr>`+DOW.map((x,i)=>
+      `<th class="${i===0?'sun':i===6?'sat':''}">${x}</th>`).join('')+`</tr></thead><tbody>`;
+  const today=todayStr(), picked=curDate();
+  for(let r=0;r<cells.length/7;r++){
+    h+='<tr>';
+    for(let c=0;c<7;c++){
+      const day=cells[r*7+c];
+      if(!day){ h+='<td class="other"></td>'; continue; }
+      const st=dayStat(day);
+      const cls=[c===0?'sun':c===6?'sat':'',day===today?'today':'',day===picked?'pickd':''];
+      // 稼働可能時間より必要時間が多い日は色を変えて警告
+      if(st.load>st.min && st.users) cls.push('over');
+      let body;
+      if(sid){
+        const w=shiftOf(day,sid);
+        body=`<span class="big" style="color:${w.off?'#c0392b':'#1c2430'}">${w.off?'休':esc(w.start)+'<br>'+esc(w.end)}</span>
+          <div class="cnt"><span class="${st.users?'u':'none'}">利用者 <b>${st.users}</b></span></div>`;
+      }else{
+        body=`<div class="cnt"><i>勤務</i><b class="${st.work?'w':'none'}">${st.work}</b> 名</div>
+          <div class="cnt"><i>休暇</i><b class="${st.off?'r':'none'}">${st.off}</b> 名</div>
+          <div class="cnt"><i>利用</i><b class="${st.users?'u':'none'}">${st.users}</b> 件${
+            st.heads>st.users?`<span class="muted">/延${st.heads}</span>`:''}</div>`;
+      }
+      h+=`<td class="${cls.join(' ')}" onclick="openDay('${day}')" title="${day} をクリックしてこの日の詳細へ">
+        <span class="dn">${+day.slice(8)}</span>${body}</td>`;
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  h+=`<div class="legend"><span>日付をクリックすると、その日の詳細ページに移動します</span>
+      <span><i class="sw" style="background:#fdf3f2"></i>必要な訪問時間が勤務時間を上回る日</span>
+      <span><i class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px #f0a500"></i>選択中の日</span></div>`;
+  return h;
+}
+
+/* --- 日別・勤務帯バー --- */
+function dayBarHTML(date){
+  const staff=DB.staff.filter(s=>s.active!==false).map(s=>({s,w:shiftOf(date,s.id)}));
+  const on=staff.filter(x=>!x.w.off);
+  if(!on.length) return '<div class="muted">この日に勤務するスタッフはいません。</div>';
+  const mins=on.flatMap(x=>[s2m(x.w.start),s2m(x.w.end)]).filter(v=>v!=null);
+  let t0=Math.floor(Math.min(...mins)/60)*60, t1=Math.ceil(Math.max(...mins)/60)*60;
+  if(t1-t0<300){ t1=t0+300; }
+  const px=m=>(m-t0)/(t1-t0)*100, W=Math.max(880,(t1-t0)*1.7);
+  // 訪問予定があれば重ねて表示
+  const plan={}; if(LAST&&LAST.date===date) LAST.sol.routes.forEach(r=>plan[r.staff.id]=r.stops);
+  let head=`<div class="tl-head"><div class="tl-name">スタッフ</div><div class="tl-track" style="height:22px">`;
+  for(let t=t0;t<=t1;t+=60) head+=`<div class="tl-tick" style="left:${px(t)}%">${Math.floor(t/60)}時</div>`;
+  head+='</div></div>';
+  const rows=staff.map(({s,w})=>{
+    if(BAR_EDIT===s.id) return barEditRow(date,s,w);
+    const nm=`<div class="tl-name" onclick="startBarEdit('${s.id}')" style="cursor:pointer" title="クリックで勤務時間を変更">
+      <b>${esc(s.name)}</b><span class="muted">${w.off?'休み':(w.custom?'当日変更あり':(w.byWeek?'曜日別シフト':'通常シフト'))}${
+        w.note?'／'+esc(w.note):''}</span></div>`;
+    if(w.off) return `<div class="tl-row off">${nm}
+      <div class="tl-track editable" onclick="startBarEdit('${s.id}')" title="クリックで出勤に変更"></div></div>`;
+    const a=s2m(w.start), b=s2m(w.end);
+    let blk=`<div class="blk shift${w.custom?' cust':''}" onclick="startBarEdit('${s.id}')"
+      title="クリックで勤務時間を変更"
+      style="left:${px(a)}%;width:${px(b)-px(a)}%">${esc(w.start)} 〜 ${esc(w.end)}（${((b-a)/60).toFixed(1)}h）</div>`;
+    (plan[s.id]||[]).forEach(st=>{
+      blk+=`<div class="blk work" style="left:${px(st.start)}%;width:${Math.max(1,px(st.end)-px(st.start))}%;top:12px;height:20px"
+        title="${esc(st.visit.name)} ${m2s(st.start)}〜${m2s(st.end)}">${esc(st.visit.name)}</div>`;
+    });
+    return `<div class="tl-row">${nm}
+      <div class="tl-track editable" onclick="startBarEdit('${s.id}')"
+        style="background-size:${100/((t1-t0)/60)}% 100%">${blk}</div></div>`;
+  }).join('');
+
+  const st=dayStat(date), vs=buildVisits(date);
+  const tight=st.load>st.min;
+  const vlist=vs.length?`<details style="margin-top:10px"><summary>この日の訪問予定 ${vs.length} 件（延べ ${st.heads} 名・${(st.load/60).toFixed(1)}時間）</summary>
+    <table style="margin-top:8px"><thead><tr><th>利用者</th><th>希望時間帯</th><th>所要</th><th>人数</th><th>必要スキル</th><th>住所</th></tr></thead><tbody>`
+    +vs.sort((a,b)=>a.from-b.from).map(v=>`<tr><td>${esc(v.name)}</td><td>${m2s(v.from)}〜${m2s(v.to)}</td>
+      <td>${v.dur}分</td><td>${v.need>1?'<span class="chip">'+v.need+'名</span>':'1名'}</td>
+      <td>${v.skills.map(k=>'<span class="chip gray">'+esc(k)+'</span>').join('')||'—'}</td>
+      <td class="muted">${esc(v.addr)}</td></tr>`).join('')+`</tbody></table></details>`:'';
+
+  return `<div class="bar noprint" style="margin-bottom:8px">
+      <button class="primary" onclick="go('plan');runOptimize()">この日の配置を作る</button>
+    </div>
+    <div class="metric">勤務 <b class="cnt"><span class="w">${st.work}</span></b> 名</div>
+    <div class="metric">休暇 <b class="cnt"><span class="r">${st.off}</span></b> 名</div>
+    <div class="metric">利用者 <b class="cnt"><span class="u">${st.users}</span></b> 件（延べ ${st.heads} 名）</div>
+    <div class="metric">勤務可能 <b>${(st.min/60).toFixed(1)}</b> 時間</div>
+    <div class="metric" style="${tight?'background:#fdecea;color:#8b2b20':''}">必要な訪問時間 <b>${(st.load/60).toFixed(1)}</b> 時間</div>
+    ${tight?'<div class="note">訪問に必要な時間が勤務時間を上回っています。移動時間も加わるため、このままでは組めない可能性があります。</div>':''}
+    <div class="tl"><div class="tl-inner" style="width:${W}px">${head}${rows}</div></div>
+    <div class="muted" style="margin-top:6px">勤務バーをクリックするとその場で時間を変更できます。変更内容は下の「変更のお知らせ」にまとまります。${
+      LAST&&LAST.date===date?'／濃い緑＝作成済みの訪問予定':''}</div>
+    ${vlist}`;
+}
+
+/* --- 勤務バーをその場で編集 --- */
+let BAR_EDIT=null;
+function startBarEdit(sid){ BAR_EDIT=sid; renderCal();
+  setTimeout(()=>{ const e=document.getElementById('be_s'); if(e) e.focus(); },30); }
+function cancelBarEdit(){ BAR_EDIT=null; renderCal(); }
+function barEditRow(date,s,w){
+  const base=DB.staff.find(x=>x.id===s.id)||{};
+  return `<div class="tl-row bar-edit"><div class="tl-name"><b>${esc(s.name)}</b>
+      <span class="muted">変更中</span></div>
+    <div class="tl-track be-form">
+      <div class="be-line">
+        <label class="be-off"><input type="checkbox" id="be_off" style="width:auto"
+          ${w.off?'checked':''} onchange="document.getElementById('be_s').disabled=this.checked;
+          document.getElementById('be_e').disabled=this.checked"> 休み</label>
+        <input type="time" id="be_s" value="${esc(w.start)}" ${w.off?'disabled':''}>
+        <span class="muted">〜</span>
+        <input type="time" id="be_e" value="${esc(w.end)}" ${w.off?'disabled':''}>
+        <span class="be-nudge">
+          <span class="muted">開始</span>
+          <button class="sm" onclick="nudgeBar('be_s',-30)">−30</button>
+          <button class="sm" onclick="nudgeBar('be_s',30)">＋30</button>
+          <span class="muted" style="margin-left:6px">終了</span>
+          <button class="sm" onclick="nudgeBar('be_e',-30)">−30</button>
+          <button class="sm" onclick="nudgeBar('be_e',30)">＋30</button>
+        </span>
+      </div>
+      <div class="be-line">
+        <label class="be-lb">メモ</label>
+        <input id="be_n" value="${esc(w.note)}" placeholder="変更の理由（お知らせに載ります）" class="be-note">
+        <span style="flex:1"></span>
+        <button class="sm" onclick="resetBarEdit('${date}','${s.id}')"
+          title="通常シフト ${esc(base.start||'')}〜${esc(base.end||'')} に戻す">通常に戻す</button>
+        <button class="sm" onclick="cancelBarEdit()">取消</button>
+        <button class="primary sm" onclick="saveBarEdit('${date}','${s.id}')">保存</button>
+      </div>
+    </div></div>`;
+}
+function nudgeBar(id,min){
+  const el=document.getElementById(id); if(!el||el.disabled) return;
+  const v=s2m(el.value); if(v==null) return;
+  el.value=m2s(Math.max(0,Math.min(1439,v+min)));
+}
+function saveBarEdit(date,sid){
+  const off=document.getElementById('be_off').checked;
+  const st=document.getElementById('be_s').value, en=document.getElementById('be_e').value;
+  const nt=document.getElementById('be_n').value.trim();
+  if(!off&&(!st||!en||s2m(st)>=s2m(en))){ alert('終了時刻は開始時刻より後にしてください。'); return; }
+  DB.ovr[date]=DB.ovr[date]||{};
+  DB.ovr[date][sid]= off ? {off:true,note:nt} : {start:st,end:en,note:nt};
+  save(); BAR_EDIT=null; renderCal();
+}
+function resetBarEdit(date,sid){
+  if(DB.ovr[date]) delete DB.ovr[date][sid];
+  save(); BAR_EDIT=null; renderCal();
+}
+/* --- 変更のお知らせ --- */
+function changeNotice(date){
+  const lines=[];
+  DB.staff.filter(s=>s.active!==false).forEach(s=>{
+    const v=(DB.ovr[date]||{})[s.id]; if(!v||(!v.off&&!v.start&&!v.end)) return;
+    // 変更前＝当日変更が無かった場合のシフト
+    const w=(s.wk||{})[dowOf(date)]||{};
+    const bs=w.off?'休み':((w.start||s.start)+'〜'+(w.end||s.end));
+    const as=v.off?'休み':(v.start+'〜'+v.end);
+    if(bs===as) return;
+    lines.push({name:s.name,before:bs,after:as,note:v.note||''});
+  });
+  const ex=extraOf(date).map(c=>({name:c.name,add:`${c.from}〜（${c.dur}分・${c.need}名）`+(c.addr?' '+c.addr:'')}));
+  return {lines,ex};
+}
+function noticeText(date){
+  const {lines,ex}=changeNotice(date);
+  if(!lines.length&&!ex.length) return '';
+  const d=dobj(date);
+  let t=`【${d.getMonth()+1}月${d.getDate()}日（${DOW[dowOf(date)]}）勤務変更のお知らせ】\n`;
+  lines.forEach(l=>t+=`・${l.name}：${l.before} → ${l.after}${l.note?'（'+l.note+'）':''}\n`);
+  ex.forEach(e=>t+=`・臨時訪問：${e.name} ${e.add}\n`);
+  return t;
+}
+function copyNotice(date){
+  const t=noticeText(date); if(!t) return;
+  const done=()=>{ const b=document.getElementById('noticeCopied'); if(b){b.textContent='コピーしました';
+    setTimeout(()=>b.textContent='',2500);} };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,fallback);
+  else fallback();
+  function fallback(){
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+    ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done();
+  }
+}
+/* --- 日別ページの下部（お知らせ・臨時訪問） --- */
+function renderDayPanels(){
+  const box=document.getElementById('dayPanels'); if(!box) return;
+  const mode=document.getElementById('calMode').value;
+  if(mode!=='day'){ box.innerHTML=''; return; }
+  const date=calAnchor;
+  const {lines,ex}=changeNotice(date);
+  const n=lines.length+ex.length;
+  box.innerHTML=`
+    <div class="card">
+      <h2>変更のお知らせ <span class="sub">通常シフトからの変更を自動でまとめます</span></h2>
+      ${n?`<pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;background:#f4f8f7;
+            border:1px solid #cfe4de;border-radius:8px;padding:10px 12px;margin:0">${esc(noticeText(date))}</pre>
+          <div class="bar noprint" style="margin-top:8px"><button class="primary" onclick="copyNotice('${date}')">お知らせをコピー</button>
+            <span id="noticeCopied" class="muted"></span>
+            <span class="muted">コピーしてLINEやメールに貼り付けて共有できます</span></div>`
+        :`<div class="muted">この日は通常シフトどおりです。勤務バーをクリックすると変更できます。</div>`}
+    </div>
+    <div class="card">
+      <h2>臨時訪問 <span class="sub">この日だけ追加する訪問</span></h2>
+      <div class="bar noprint"><button onclick="addExtra()">＋ 臨時訪問を追加</button></div>
+      <div class="tblwrap"><table id="extraTable"></table></div>
+    </div>`;
+  renderExtra();
+}
+/* --- セル編集モーダル --- */
+function closeModal(){ const m=document.querySelector('.mask'); if(m) m.remove(); }
+function modal(html){
+  const m=document.createElement('div'); m.className='mask';
+  m.innerHTML=`<div class="modal">${html}</div>`;
+  m.addEventListener('click',e=>{ if(e.target===m) m.remove(); });
+  document.body.appendChild(m); return m;
+}
+function editShift(date,sid){
+  const s=DB.staff.find(x=>x.id===sid); const w=shiftOf(date,sid);
+  const m=modal(`<h3>${esc(s.name)}　${date.replace(/-/g,'/')}（${DOW[dowOf(date)]}）</h3>
+    <div class="row"><label><input type="checkbox" id="md_off" style="width:auto" ${w.off?'checked':''}> 休み</label></div>
+    <div class="row"><label class="f" style="margin:0">開始</label><input type="time" id="md_s" value="${esc(w.start)}">
+      <label class="f" style="margin:0">終了</label><input type="time" id="md_e" value="${esc(w.end)}"></div>
+    <div class="row"><label class="f" style="margin:0;white-space:nowrap">メモ</label>
+      <input id="md_n" value="${esc(w.note)}" style="flex:1"></div>
+    <div class="muted">通常シフト：${esc(s.start)}〜${esc(s.end)}</div>
+    <div class="foot"><button onclick="this.closest('.mask').remove()">閉じる</button>
+      <button onclick="resetShift('${date}','${sid}')">通常に戻す</button>
+      <button class="primary" onclick="saveShift('${date}','${sid}')">保存</button></div>`);
+  m.querySelector('#md_s').focus();
+}
+function saveShift(date,sid){
+  const off=document.getElementById('md_off').checked;
+  const st=document.getElementById('md_s').value, en=document.getElementById('md_e').value;
+  const nt=document.getElementById('md_n').value;
+  DB.ovr[date]=DB.ovr[date]||{};
+  DB.ovr[date][sid]= off ? {off:true,note:nt} : {start:st,end:en,note:nt};
+  save(); closeModal(); renderCal(); renderOvr();
+}
+function resetShift(date,sid){
+  if(DB.ovr[date]) delete DB.ovr[date][sid];
+  save(); closeModal(); renderCal(); renderOvr();
+}
+function clearRange(){
+  const [f,t]=calRange();
+  if(!confirm(f+' 〜 '+t+' の個別シフト設定を消して、通常シフトに戻します。よろしいですか？')) return;
+  for(let d=f;d<=t;d=addDays(d,1)) delete DB.ovr[d];
+  save(); renderCal(); renderOvr();
+}
+
+/* ==========================================================
+   Excel / CSV 取り込み
+========================================================== */
+const OFF_WORDS=/^(休|休み|公休|有休|有給|欠|×|✕|x|X|ー|―|-|−|・|なし|OFF|off|Off)$/;
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function normName(s){ return String(s||'').replace(/[\s　]/g,'').replace(/[（(].*?[）)]/g,'').trim(); }
+
+/* セル値 → {off} / {start,end} / null(空) / {bad} */
+function parseShiftCell(v){
+  if(v==null) return null;
+  if(v instanceof Date){ return null; }               // 単独時刻のみは範囲にならない
+  const s=String(v).trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  if(!s) return null;
+  if(OFF_WORDS.test(s)) return {off:true};
+  // 9:00-17:30 / 9：00〜17：30 / 0900-1730 / 9-17
+  let m=s.match(/(\d{1,2})\s*[:：]\s*(\d{1,2})\s*[^\d]{1,4}\s*(\d{1,2})\s*[:：]\s*(\d{1,2})/);
+  if(m) return {start:pad2(+m[1])+':'+pad2(+m[2]), end:pad2(+m[3])+':'+pad2(+m[4])};
+  m=s.match(/^(\d{3,4})\s*[^\d]{1,4}\s*(\d{3,4})$/);
+  if(m){ const f=x=>pad2(+x.slice(0,x.length-2))+':'+x.slice(-2);
+         return {start:f(m[1]), end:f(m[2])}; }
+  m=s.match(/^(\d{1,2})\s*[^\d:：]{1,4}\s*(\d{1,2})$/);
+  if(m&&+m[1]<24&&+m[2]<=24) return {start:pad2(+m[1])+':00', end:pad2(+m[2])+':00'};
+  if(/^[○◯〇◎✓✔]$/.test(s)) return {mark:true};      // 出勤印のみ＝通常シフト
+  return {bad:s};
+}
+/* ヘッダ値 → 'YYYY-MM-DD' */
+function parseDateHead(v,y,mo){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return dstr(v);
+  const s=String(v).trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  let m=s.match(/^(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if(m) return m[1]+'-'+pad2(+m[2])+'-'+pad2(+m[3]);
+  m=s.match(/^(\d{1,2})[\/\-月](\d{1,2})/);
+  if(m) return y+'-'+pad2(+m[1])+'-'+pad2(+m[2]);
+  m=s.match(/^(\d{1,2})\s*日?(\s*[（(].[）)])?$/);
+  if(m&&+m[1]>=1&&+m[1]<=31) return y+'-'+pad2(mo)+'-'+pad2(+m[1]);
+  return null;
+}
+function findStaff(name){
+  const n=normName(name); if(!n) return null;
+  let s=DB.staff.find(x=>normName(x.name)===n); if(s) return s;
+  s=DB.staff.find(x=>normName(x.name).startsWith(n)||n.startsWith(normName(x.name)));
+  return s||null;
+}
+function parseCSV(text){
+  const rows=[]; let row=[],cur='',q=false;
+  text=text.replace(/^﻿/,'');
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur=''; }
+    else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+    else if(c!=='\r') cur+=c;
+  }
+  if(cur||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+
+/* 2次元配列 → 取り込み結果 */
+function analyzeSheet(aoa,y,mo){
+  const res={layout:'',rows:[],unknownNames:[],badCells:[],dates:new Set()};
+  const g=(r,c)=>{ const v=aoa[r]&&aoa[r][c]; return v==null?'':v; };
+
+  // --- 形式C: 1行1件（氏名/日付/開始/終了）---
+  for(let r=0;r<Math.min(8,aoa.length);r++){
+    const hdr=(aoa[r]||[]).map(x=>String(x||'').replace(/\s/g,''));
+    const ci={name:hdr.findIndex(h=>/氏名|名前|スタッフ|職員/.test(h)),
+              date:hdr.findIndex(h=>/日付|年月日|日$/.test(h)),
+              st:hdr.findIndex(h=>/開始|始業|出勤|from|start/i.test(h)),
+              en:hdr.findIndex(h=>/終了|終業|退勤|to$|end/i.test(h))};
+    if(ci.name>=0&&ci.date>=0&&ci.st>=0&&ci.en>=0){
+      res.layout='1行1件';
+      for(let i=r+1;i<aoa.length;i++){
+        const nm=g(i,ci.name); if(!String(nm).trim()) continue;
+        const d=parseDateHead(g(i,ci.date),y,mo); if(!d) continue;
+        const st=parseShiftCell(g(i,ci.st)+'-'+g(i,ci.en));
+        const s=findStaff(nm);
+        if(!s){ res.unknownNames.push(String(nm)); continue; }
+        res.dates.add(d);
+        if(st&&st.start) res.rows.push({date:d,sid:s.id,name:s.name,val:st});
+        else if(OFF_WORDS.test(String(g(i,ci.st)).trim())) res.rows.push({date:d,sid:s.id,name:s.name,val:{off:true}});
+      }
+      return finish(res);
+    }
+  }
+  // --- 形式A/B: 行列型。日付が並ぶ行/列を探す ---
+  let best=null;
+  for(let r=0;r<Math.min(12,aoa.length);r++){
+    let cnt=0,cols=[];
+    for(let c=0;c<(aoa[r]||[]).length;c++){ const d=parseDateHead(g(r,c),y,mo); if(d){cnt++;cols.push([c,d]);} }
+    if(cnt>=3&&(!best||cnt>best.cnt)) best={type:'A',row:r,cnt,cols};
+  }
+  for(let c=0;c<12;c++){
+    let cnt=0,rws=[];
+    for(let r=0;r<aoa.length;r++){ const d=parseDateHead(g(r,c),y,mo); if(d){cnt++;rws.push([r,d]);} }
+    if(cnt>=3&&(!best||cnt>best.cnt)) best={type:'B',col:c,cnt,rws};
+  }
+  if(!best){ res.layout=''; return res; }
+
+  if(best.type==='A'){                      // 縦=スタッフ / 横=日付
+    res.layout='縦＝スタッフ、横＝日付';
+    let nameCol=0;
+    for(let c=0;c<6;c++){ let hit=0;
+      for(let r=best.row+1;r<aoa.length;r++) if(findStaff(g(r,c))) hit++;
+      if(hit){ nameCol=c; break; } }
+    for(let r=best.row+1;r<aoa.length;r++){
+      const nm=g(r,nameCol); if(!String(nm).trim()) continue;
+      const s=findStaff(nm);
+      if(!s){ if(String(nm).length<12) res.unknownNames.push(String(nm)); continue; }
+      best.cols.forEach(([c,d])=>{
+        const p=parseShiftCell(g(r,c)); if(!p) return;
+        res.dates.add(d);
+        if(p.bad){ res.badCells.push(`${s.name} ${d.slice(5)}：「${p.bad}」`); return; }
+        res.rows.push({date:d,sid:s.id,name:s.name,val:p});
+      });
+    }
+  } else {                                   // 縦=日付 / 横=スタッフ
+    res.layout='縦＝日付、横＝スタッフ';
+    let hdrRow=0, map=[];
+    for(let r=0;r<Math.min(12,aoa.length);r++){
+      const mm=[]; for(let c=0;c<(aoa[r]||[]).length;c++){ const s=findStaff(g(r,c)); if(s) mm.push([c,s]); }
+      if(mm.length>map.length){ map=mm; hdrRow=r; }
+    }
+    (aoa[hdrRow]||[]).forEach((v,c)=>{ if(String(v||'').trim()&&!map.some(m=>m[0]===c)&&c!==best.col
+      &&!/日付|曜|合計|備考|メモ|時間|人数|計$|^No|^№|^#/.test(String(v))) res.unknownNames.push(String(v)); });
+    best.rws.forEach(([r,d])=>{
+      map.forEach(([c,s])=>{
+        const p=parseShiftCell(g(r,c)); if(!p) return;
+        res.dates.add(d);
+        if(p.bad){ res.badCells.push(`${s.name} ${d.slice(5)}：「${p.bad}」`); return; }
+        res.rows.push({date:d,sid:s.id,name:s.name,val:p});
+      });
+    });
+  }
+  return finish(res);
+}
+function finish(res){ res.unknownNames=[...new Set(res.unknownNames)]; return res; }
+
+let PENDING=null;
+document.getElementById('xlsFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const d=dobj(calAnchor||todayStr());
+  let aoa;
+  try{
+    if(/\.csv$/i.test(f.name)) aoa=parseCSV(await f.text());
+    else{
+      if(typeof XLSX==='undefined'){ alert('Excelを読むための部品を読み込めませんでした（オフラインの可能性）。\nExcelで「CSVとして保存」してから取り込んでください。'); return; }
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+      // ① 訪問スケジュール表（週次シート）形式かを先に判定
+      if(scheduleImportUI(wb)) return;
+      // ② 通常の勤務シフト表として読む
+      aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+    }
+  }catch(err){ alert('ファイルを読めませんでした：'+err.message); return; }
+
+  const res=analyzeSheet(aoa,d.getFullYear(),d.getMonth()+1);
+  if(!res.layout||!res.rows.length){
+    alert('シフト表の形を判別できませんでした。\n「取り込み用テンプレートを取得」で形式をご確認ください。\n'
+      +(res.unknownNames.length?'\n※ 一致しない氏名：'+res.unknownNames.slice(0,8).join('、'):''));
+    return;
+  }
+  PENDING=res;
+  const ds=[...res.dates].sort();
+  const byStaff={}; res.rows.forEach(r=>{ byStaff[r.name]=byStaff[r.name]||{n:0,off:0};
+    byStaff[r.name].n++; if(r.val.off) byStaff[r.name].off++; });
+  modal(`<h3>取り込み内容の確認</h3>
+    <div class="metric">形式 <b>${res.layout}</b></div>
+    <div class="metric">期間 <b>${ds[0]} 〜 ${ds[ds.length-1]}</b></div>
+    <div class="metric">読み取り <b>${res.rows.length}</b> 件</div>
+    <table style="margin-top:10px"><thead><tr><th>スタッフ</th><th>日数</th><th>うち休み</th></tr></thead><tbody>`
+    +Object.entries(byStaff).map(([n,v])=>`<tr><td>${esc(n)}</td><td>${v.n}</td><td>${v.off}</td></tr>`).join('')
+    +`</tbody></table>
+    ${res.unknownNames.length?`<div class="err" style="margin-top:10px"><b>スタッフ台帳に無い氏名（無視されます）</b><br>${esc(res.unknownNames.join('、'))}</div>`:''}
+    ${res.badCells.length?`<div class="note" style="margin-top:10px"><b>読み取れなかったセル（${res.badCells.length}件）</b><br>${esc(res.badCells.slice(0,10).join(' / '))}</div>`:''}
+    <div class="foot"><button onclick="this.closest('.mask').remove()">やめる</button>
+      <button class="primary" onclick="applyImport()">この内容で取り込む</button></div>`);
+});
+
+function applyImport(){
+  if(!PENDING) return;
+  PENDING.rows.forEach(r=>{
+    DB.ovr[r.date]=DB.ovr[r.date]||{};
+    if(r.val.off) DB.ovr[r.date][r.sid]={off:true};
+    else if(r.val.mark) delete DB.ovr[r.date][r.sid];      // 出勤印のみ＝通常シフト
+    else DB.ovr[r.date][r.sid]={start:r.val.start,end:r.val.end};
+  });
+  save();
+  const ds=[...PENDING.dates].sort();
+  calAnchor=ds[0];
+  PENDING=null;
+  closeModal();
+  renderCal(); renderOvr();
+  alert('取り込みました。');
+}
+
+/* --- テンプレート / 書き出し --- */
+function shiftAOA(f,t){
+  const days=[]; for(let x=f;x<=t;x=addDays(x,1)) days.push(x);
+  const head=['氏名',...days.map(d=>d.slice(5).replace('-','/')+'('+DOW[dowOf(d)]+')')];
+  const rows=DB.staff.filter(s=>s.active!==false).map(s=>[s.name,
+    ...days.map(d=>{ const w=shiftOf(d,s.id); return w.off?'休':w.start+'-'+w.end; })]);
+  return [head,...rows];
+}
+function dlTemplate(){
+  const d=dobj(calAnchor||todayStr());
+  const f=dstr(new Date(d.getFullYear(),d.getMonth(),1)), t=dstr(new Date(d.getFullYear(),d.getMonth()+1,0));
+  const aoa=shiftAOA(f,t);
+  // テンプレートは中身を空にして配布
+  const tmpl=[aoa[0],...aoa.slice(1).map(r=>[r[0],...r.slice(1).map(()=>'')])];
+  tmpl.push([]); tmpl.push(['記入例','9:00-17:30 のように入力。休みは「休」。空欄はスタッフ台帳の通常シフトを使います。']);
+  writeSheet(tmpl,'シフト取込テンプレート_'+f.slice(0,7)+'');
+}
+function dlShiftXlsx(){
+  const [f,t]=calRange();
+  writeSheet(shiftAOA(f,t),'シフト表_'+f+'_'+t);
+}
+function writeSheet(aoa,name){
+  if(typeof XLSX!=='undefined'){
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=aoa[0].map((_,i)=>({wch:i===0?14:11}));
+    XLSX.utils.book_append_sheet(wb,ws,'シフト');
+    XLSX.writeFile(wb,name+'.xlsx');
+  }else{
+    const csv='﻿'+aoa.map(r=>r.map(c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    dl(new Blob([csv],{type:'text/csv'}),name+'.csv');
+  }
+}
+
+/* ==========================================================
+   訪問スケジュール表（週次シート形式）からの取り込み
+   行＝スタッフ / 列＝30分刻みの時刻 / セル＝訪問先、結合幅＝所要時間
+========================================================== */
+const BIZ_RE=/^(MT|ＭＴ|OL|ＯＬ|月次|月末|面談|内服|カルテ|記録|打ち?合わ?せ|休み|休職|有休|有給|研修|会議|申請|調整|レセ|請求|報告書|計画書|指示|待機|移動|振替|欠勤|欠|不在|なし|新規|連携|医連|裁判所|社労士|往診|受診同行|事務|待期|訪問前|[0-9０-９]+回)/;
+const STAFF_NG=/休み希望|不在|^※|NS$|Ns$|ＮＳ$|^名前$|^\s*$/;
+
+function zen2han(s){ return String(s).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)); }
+function xv(ws,r,c){ const a=XLSX.utils.encode_cell({r,c}), cel=ws[a]; return cel&&cel.v!=null?cel.v:null; }
+function mergeEnds(ws){ const m={}; (ws['!merges']||[]).forEach(g=>{ if(g.s.r===g.e.r) m[g.s.r+','+g.s.c]=g.e.c; }); return m; }
+function hhmm(v){
+  if(v==null) return null;
+  if(v instanceof Date) return v.getHours()*60+v.getMinutes();
+  const s=zen2han(v).replace(/[：；;]/g,':').replace(/[\s　]/g,'');
+  const m=s.match(/^(\d{1,2}):(\d{2})$/); if(!m) return null;
+  const h=+m[1],x=+m[2]; return (h>23||x>59)?null:h*60+x;
+}
+function isDate(v){ return v instanceof Date && !isNaN(v); }
+
+/* --- 週次シートを走査して訪問レコードを抽出 --- */
+function parseWeeklyWB(wb){
+  const recs=[]; let nsheet=0;
+  wb.SheetNames.forEach(sn=>{
+    const ws=wb.Sheets[sn]; if(!ws||!ws['!ref']) return;
+    const rng=XLSX.utils.decode_range(ws['!ref']);
+    const me=mergeEnds(ws);
+    // 日付ブロックの先頭行（B列が日付）
+    const dayRows=[];
+    for(let r=rng.s.r;r<=rng.e.r;r++){ const v=xv(ws,r,1); if(isDate(v)) dayRows.push([r,v]); }
+    if(dayRows.length<2) return;
+    let hit=0;
+    dayRows.forEach(([dr,dv],i)=>{
+      // 時刻ヘッダ行を探す
+      let hr=null,tmap=null;
+      for(let off=1;off<=6&&dr+off<=rng.e.r;off++){
+        const t={}; let n=0;
+        for(let c=1;c<=rng.e.c;c++){ const m=hhmm(xv(ws,dr+off,c)); if(m!=null){ t[c]=m; n++; } }
+        if(n>=10){ hr=dr+off; tmap=t; break; }
+      }
+      if(!hr) return;
+      const cols=Object.keys(tmap).map(Number).sort((a,b)=>a-b);
+      const stop=(i+1<dayRows.length)?dayRows[i+1][0]:Math.min(rng.e.r+1,hr+40);
+      for(let r=hr+1;r<stop;r++){
+        const nmv=xv(ws,r,0);
+        if(nmv==null||isDate(nmv)) continue;
+        const staff=String(nmv).replace(/[\s　]+/g,' ').trim();
+        if(!staff||STAFF_NG.test(staff)) continue;
+        cols.forEach(c=>{
+          const v=xv(ws,r,c); if(v==null||!String(v).trim()) return;
+          const ec=me[r+','+c]||c;
+          const nx=cols.filter(x=>x>ec);
+          const st=tmap[c];
+          let en=nx.length?tmap[nx[0]]:st+30;
+          if(en-st>240) en=st+240;      // 行全体に伸びた注記などの異常値を丸める
+          recs.push({sheet:sn,date:dstr(dv),dow:dv.getDay(),staff,
+            cell:String(v).replace(/[\n\r]+/g,' ').trim(),start:st,end:en,dur:Math.max(30,en-st)});
+        });
+      }
+      hit++;
+    });
+    if(hit) nsheet++;
+  });
+  // 「〜のコピー」など同じ週が複数シートにある場合の二重計上を除去
+  const seen=new Set(), uniq=[]; let dup=0;
+  recs.forEach(r=>{
+    const k=r.date+'|'+r.staff+'|'+r.start+'|'+r.cell;
+    if(seen.has(k)){ dup++; return; }
+    seen.add(k); uniq.push(r);
+  });
+  return {recs:uniq,nsheet,dup};
+}
+
+/* --- 氏名台帳（患者管理表など）を全シートから収集 --- */
+function parsePatientWB(wb){
+  const map={};
+  wb.SheetNames.forEach(sn=>{
+    const ws=wb.Sheets[sn]; if(!ws||!ws['!ref']) return;
+    const rng=XLSX.utils.decode_range(ws['!ref']);
+    for(let r=rng.s.r;r<=Math.min(rng.e.r,8);r++){
+      const row=[]; for(let c=0;c<=Math.min(rng.e.c,24);c++) row.push(String(xv(ws,r,c)||''));
+      const ci={nm:row.findIndex(x=>/^氏名|^利用者名?$|^患者名?$/.test(x.replace(/[\s　]/g,''))),
+                ns:row.findIndex(x=>/担当/.test(x)),
+                zip:row.findIndex(x=>/〒|郵便|住所/.test(x))};
+      if(ci.nm<0) continue;
+      for(let i=r+1;i<=rng.e.r;i++){
+        const nm=xv(ws,i,ci.nm); if(nm==null) continue;
+        const name=String(nm).replace(/[\s　]/g,'').trim();
+        if(!name||name.length>10||/^[0-9]+$/.test(name)) continue;
+        if(/休み希望|不在|指示依頼|返戻|対応不可|^医療$|GAF|報告書|^計画書|合計|小計/.test(name)) continue;
+        const ns=ci.ns>=0?String(xv(ws,i,ci.ns)||'').replace(/[\s　]/g,'').trim():'';
+        const zip=ci.zip>=0?String(xv(ws,i,ci.zip)||'').trim():'';
+        const e=map[name]=map[name]||{name,ns:'',zip:'',sheets:[]};
+        if(ns&&!e.ns) e.ns=ns;
+        if(/\d{3}-?\d{4}/.test(zip)&&!e.zip) e.zip=zip;
+        if(!e.sheets.includes(sn)) e.sheets.push(sn);
+      }
+      break;
+    }
+  });
+  // 長い氏名を先に照合したいので長さ降順
+  return Object.values(map).sort((a,b)=>b.name.length-a.name.length);
+}
+
+/* セルがスタッフ名（＝同行・研修）を指しているか */
+function isStaffRef(s,staffNorms){
+  if(!staffNorms||!staffNorms.length) return false;
+  const t=s.replace(/(NS|Ns|nS|ns|ＮＳ|Ｎｓ|ｎｓ|Ｎｓ|ナース|看護師)$/,'');
+  if(t!==s&&t.length>=2&&staffNorms.some(n=>n.startsWith(t)||t.startsWith(n))) return true;
+  return staffNorms.some(n=>n===s);
+}
+/* --- セル文字列 → 正式氏名 / 同日n回目（取り込みルールを適用） --- */
+function matchPatient(cell,pnames,rules,staffNorms){
+  const R=rules||DB.rules||DEF_RULES;
+  const AL=R.alias||{}, EX=R.exclude||[];
+  let s=String(cell).replace(/[（(].*?[）)]/g,'').replace(/[\s　]/g,'').trim();
+  s=s.replace(/[?？!！☆★🎌・]/g,'');
+  if(!s) return null;
+  if(EX.includes(s)) return {biz:true,byRule:true};
+  if(AL[s]) return {name:AL[s],seq:null,byRule:true};
+  if(BIZ_RE.test(s)) return {biz:true};
+  if(isStaffRef(s,staffNorms)) return {biz:true,staffRef:true};
+  let seq=null;
+  const m=s.match(/^(.{2,}?)([0-9０-９])$/);
+  if(m){ s=m[1]; seq=+zen2han(m[2]); }
+  if(!s) return null;
+  if(EX.includes(s)) return {biz:true,byRule:true};
+  if(AL[s]) return {name:AL[s],seq,byRule:true};
+  let hit=null;
+  for(const p of pnames) if(p===s){ hit=p; break; }
+  if(!hit) for(const p of pnames) if(s.length>=2&&p.startsWith(s)){ hit=p; break; }
+  if(!hit) for(const p of pnames) if(s.length>=2&&p.includes(s)){ hit=p; break; }
+  const name=hit||s;
+  if(EX.includes(name)) return {biz:true,byRule:true};
+  if(AL[name]) return {name:AL[name],seq,byRule:true};
+  return {name,seq,raw:!hit};
+}
+
+/* --- 実績を集計して利用者マスタ候補をつくる --- */
+function aggregateVisits(recs,patients,rules){
+  const R=rules||DB.rules||DEF_RULES;
+  const pnames=patients.map(p=>p.name).filter(n=>n.length<=8);
+  const pmap={}; patients.forEach(p=>pmap[p.name]=p);
+  const staffNorms=[...new Set(recs.map(r=>normName(r.staff)))].filter(n=>n.length>=2);
+  const biz={}, sref={}, groups={};
+  recs.forEach(r=>{
+    const m=matchPatient(r.cell,pnames,R,staffNorms);
+    if(!m){ return; }
+    if(m.biz){ (m.staffRef?sref:biz)[r.cell]=((m.staffRef?sref:biz)[r.cell]||0)+1; return; }
+    const key=m.name+((m.seq&&!R.mergeSeq)?'／'+m.seq+'回目':'');
+    if((R.exclude||[]).includes(key)){ biz[r.cell]=(biz[r.cell]||0)+1; return; }
+    (groups[key]=groups[key]||[]).push({...r,key,pname:m.name,seq:m.seq,raw:m.raw});
+  });
+  // 同一日・時間重複のレコードを1訪問にまとめる（＝必要人数）
+  const out=[];
+  Object.entries(groups).forEach(([key,list])=>{
+    const byDate={}; list.forEach(r=>(byDate[r.date]=byDate[r.date]||[]).push(r));
+    const occ=[];
+    Object.entries(byDate).forEach(([date,rs])=>{
+      rs.sort((a,b)=>a.start-b.start);
+      let cur=null;
+      rs.forEach(r=>{
+        if(cur&&r.start<cur.end){ cur.end=Math.max(cur.end,r.end); cur.staff.add(r.staff); }
+        else { cur={date,dow:r.dow,start:r.start,end:r.end,staff:new Set([r.staff])}; occ.push(cur); }
+      });
+    });
+    const n=occ.length; if(!n) return;
+    const starts=occ.map(o=>o.start).sort((a,b)=>a-b);
+    const durs=occ.map(o=>o.end-o.start);
+    const q=p=>starts[Math.min(starts.length-1,Math.floor(starts.length*p))];
+    const mode=a=>{const c={};a.forEach(x=>c[x]=(c[x]||0)+1);
+      return +Object.entries(c).sort((x,y)=>y[1]-x[1])[0][0];};
+    // 曜日：出現週数の35%以上（最低2回）
+    const weeks=new Set(occ.map(o=>weekStart(o.date))).size;
+    const dowC={}; occ.forEach(o=>dowC[o.dow]=(dowC[o.dow]||0)+1);
+    const th=Math.max(2,Math.round(weeks*0.35));
+    const days=Object.keys(dowC).map(Number).filter(d=>dowC[d]>=th).sort();
+    // 1日あたりの訪問回数と、同じ日の訪問どうしの間隔
+    const perDate={}; occ.forEach(o=>(perDate[o.date]=perDate[o.date]||[]).push(o.start));
+    const counts=Object.values(perDate).map(a=>a.length);
+    const times=Math.min(6,mode(counts));
+    const gaps=[]; Object.values(perDate).forEach(a=>{ a.sort((x,y)=>x-y);
+      for(let i=1;i<a.length;i++) gaps.push(a[i]-a[i-1]); });
+    gaps.sort((a,b)=>a-b);
+    const gap=gaps.length?Math.max(30,Math.round(gaps[Math.floor(gaps.length/2)]/15)*15):120;
+    const stC={}; occ.forEach(o=>o.staff.forEach(s=>stC[s]=(stC[s]||0)+1));
+    const top=Object.entries(stC).sort((a,b)=>b[1]-a[1])[0];
+    const pn=key.split('／')[0];
+    out.push({key,name:key,pname:pn,inMaster:!!pmap[pn],
+      ns:(pmap[pn]||{}).ns||'', zip:(pmap[pn]||{}).zip||'',
+      n, weeks, days, dowC,
+      from:m2s(q(0.1)), to:m2s(Math.max(q(0.9),q(0.1)+30)), med:m2s(q(0.5)),
+      dur:mode(durs), need:mode(occ.map(o=>o.staff.size)), times, gap,
+      topStaff:top?top[0]:'', topRate:top?Math.round(top[1]/n*100):0,
+      first:occ.map(o=>o.date).sort()[0], last:occ.map(o=>o.date).sort().slice(-1)[0]});
+  });
+  out.sort((a,b)=>b.n-a.n);
+  return {clients:out, biz:Object.entries(biz).sort((a,b)=>b[1]-a[1]),
+          sref:Object.entries(sref).sort((a,b)=>b[1]-a[1])};
+}
+
+/* --- スタッフ名簿と通常勤務帯を推定 --- */
+function aggregateStaff(recs){
+  const g={};
+  recs.forEach(r=>{ (g[r.staff]=g[r.staff]||[]).push(r); });
+  // 「山田」と「山田 花子」、「田中太郎」と「田中 太郎」を同一人物に統合（長い表記に寄せる）
+  const keys=Object.keys(g).sort((a,b)=>normName(b).length-normName(a).length);
+  keys.forEach(k=>{
+    if(!g[k]) return;
+    const n=normName(k);
+    keys.forEach(k2=>{
+      if(k2===k||!g[k2]) return;
+      const n2=normName(k2);
+      if(n2.length>=2&&n2.length<=n.length&&n.startsWith(n2)){ g[k]=g[k].concat(g[k2]); delete g[k2]; }
+    });
+  });
+  return Object.entries(g).map(([name,list])=>{
+    const byDate={}; list.forEach(r=>{ const d=byDate[r.date]=byDate[r.date]||{s:1e9,e:0,n:0};
+      d.s=Math.min(d.s,r.start); d.e=Math.max(d.e,r.end); d.n++; });
+    const ds=Object.values(byDate);
+    const ss=ds.map(d=>d.s).sort((a,b)=>a-b), ee=ds.map(d=>d.e).sort((a,b)=>a-b);
+    const p=(a,x)=>a[Math.min(a.length-1,Math.floor(a.length*x))];
+    const r30=m=>Math.round(m/30)*30;
+    return {name, days:ds.length, visits:list.length,
+      start:m2s(Math.min(r30(p(ss,0.1)),570)), end:m2s(Math.max(r30(p(ee,0.9)),1020)),
+      perDay:(list.length/ds.length).toFixed(1)};
+  }).sort((a,b)=>b.visits-a.visits);
+}
+
+/* --- 取り込み実行 --- */
+let SCHED=null, SCHED_WB=null;
+function scheduleImportUI(wb){
+  const {recs,nsheet,dup}=parseWeeklyWB(wb);
+  if(recs.length<30) return false;
+  SCHED_WB=wb;
+  showSchedPreview(recs,nsheet,dup);
+  return true;
+}
+function reAnalyze(){
+  closeModal();
+  const {recs,nsheet,dup}=parseWeeklyWB(SCHED_WB);
+  showSchedPreview(recs,nsheet,dup);
+}
+function showSchedPreview(recs,nsheet,dup){
+  const patients=parsePatientWB(SCHED_WB);
+  const ag=aggregateVisits(recs,patients,DB.rules);
+  const st=aggregateStaff(recs);
+  SCHED={recs,patients,ag,st};
+  const ds=recs.map(r=>r.date).sort();
+  const cl=ag.clients;
+  const rec=cl.filter(c=>c.n>=4&&c.days.length);
+  modal(`<h3>訪問スケジュール表の取り込み</h3>
+    <div class="metric">週シート <b>${nsheet}</b> 枚</div>
+    <div class="metric">期間 <b>${ds[0]} 〜 ${ds[ds.length-1]}</b></div>
+    <div class="metric">訪問記録 <b>${recs.length}</b> 件</div>
+    <div class="metric">スタッフ <b>${st.length}</b> 名</div>
+    <div class="metric">訪問先 <b>${cl.length}</b> 種（定期化できるもの <b>${rec.length}</b>）</div>
+    ${dup?`<div class="note">同じ週が複数のシートに入っていたため、重複 <b>${dup}</b> 件を除きました（「〜のコピー」シートなど）。</div>`:''}
+    <div class="note">実績から「よくある曜日・時間帯・所要時間・必要人数・主担当」を集計しました。
+      チェックした行を利用者マスタに登録します。住所は空欄なので、あとで入力してください。<br>
+      <b>統合先</b>に別の訪問先名を書くと同一人物として合算し、<b>除外</b>を付けると訪問として扱いません。
+      どちらも「ルールを保存して再集計」で設定に残るので、来週このファイルを取り込み直しても同じ判断が自動適用されます。</div>
+    <div class="bar"><button class="sm" onclick="schedCheck(1)">推奨のみ選択</button>
+      <button class="sm" onclick="schedCheck(2)">すべて選択</button>
+      <button class="sm" onclick="schedCheck(0)">すべて解除</button>
+      <button class="sm primary" onclick="saveSchedRules()">ルールを保存して再集計</button>
+      <label><input type="checkbox" id="sc_mseq" ${DB.rules.mergeSeq?'checked':''} style="width:auto"
+        onchange="DB.rules.mergeSeq=this.checked;save();reAnalyze()"> 同日2回目以降もまとめる</label>
+      <label style="margin-left:auto"><input type="checkbox" id="sc_staff" checked style="width:auto"> スタッフ名簿も登録する</label></div>
+    <datalist id="clNames">${cl.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>
+    <div class="tblwrap" style="max-height:44vh;overflow:auto"><table id="schedTable">
+      <thead><tr><th style="width:30px">登録</th><th>訪問先</th><th>回数</th><th>曜日</th><th>時間帯</th>
+      <th>所要</th><th>人数</th><th>1日の<br>回数</th><th>主担当</th><th>管理表</th><th>統合先</th><th style="width:36px">除外</th></tr></thead><tbody>
+      ${cl.map((c,i)=>`<tr>
+        <td><input type="checkbox" class="scChk" data-i="${i}" style="width:auto" ${c.n>=4&&c.days.length?'checked':''}></td>
+        <td>${esc(c.name)}</td><td>${c.n}</td>
+        <td>${c.days.length?c.days.map(d=>DOW[d]).join(''):'<span class="muted">不定期</span>'}</td>
+        <td>${c.from}〜${c.to}<br><span class="muted">中央 ${c.med}</span></td>
+        <td>${c.dur}分</td><td>${c.need>1?'<span class="chip">'+c.need+'名</span>':'1名'}</td>
+        <td>${c.times>1?'<span class="chip">'+c.times+'回</span><br><span class="muted">間隔'+c.gap+'分</span>':'1回'}</td>
+        <td>${esc(c.topStaff)}<span class="muted"> ${c.topRate}%</span></td>
+        <td>${c.inMaster?'<span class="pill ok">照合済'+(c.ns?'／担当'+esc(c.ns):'')+'</span>':'<span class="pill">表記のまま</span>'}</td>
+        <td><input class="scAl" data-name="${esc(c.name)}" list="clNames" placeholder="→ 統合先" style="width:105px"></td>
+        <td style="text-align:center"><input type="checkbox" class="scEx" data-name="${esc(c.name)}" style="width:auto"></td>
+      </tr>`).join('')}</tbody></table></div>
+    <details style="margin-top:10px"><summary>訪問以外と判定した項目（${ag.biz.length}種・取り込みません）</summary>
+      <div class="muted" style="margin-top:6px">${esc(ag.biz.map(([k,v])=>k+'×'+v).join('、'))}</div></details>
+    ${(ag.sref&&ag.sref.length)?`<details style="margin-top:6px"><summary>同行・研修と判定した項目（${ag.sref.length}種・セルにスタッフ名が書かれているもの）</summary>
+      <div class="muted" style="margin-top:6px">${esc(ag.sref.map(([k,v])=>k+'×'+v).join('、'))}</div></details>`:''}
+    <details style="margin-top:6px"><summary>推定したスタッフの通常勤務帯（${st.length}名）</summary>
+      <table style="margin-top:6px"><thead><tr><th>氏名</th><th>出勤日数</th><th>訪問数</th><th>1日平均</th><th>推定勤務帯</th></tr></thead><tbody>
+      ${st.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.days}</td><td>${s.visits}</td><td>${s.perDay}件</td>
+        <td>${s.start}〜${s.end}</td></tr>`).join('')}</tbody></table></details>
+    <div class="foot"><button onclick="this.closest('.mask').remove()">やめる</button>
+      <button class="primary" onclick="applySchedule()">選択した内容で登録する</button></div>`);
+}
+/* 統合先・除外の入力を DB.rules に保存して再集計 */
+function saveSchedRules(){
+  let n=0;
+  document.querySelectorAll('.scAl').forEach(x=>{
+    const to=x.value.trim(), from=x.dataset.name;
+    if(to&&to!==from){ DB.rules.alias[from]=to; n++; }
+  });
+  document.querySelectorAll('.scEx').forEach(x=>{
+    if(x.checked&&!DB.rules.exclude.includes(x.dataset.name)){ DB.rules.exclude.push(x.dataset.name); n++; }
+  });
+  if(!n){ alert('統合先または除外にチェックを入れてから押してください。'); return; }
+  save(); renderRules(); reAnalyze();
+}
+function schedCheck(mode){
+  document.querySelectorAll('.scChk').forEach(x=>{
+    const c=SCHED.ag.clients[+x.dataset.i];
+    x.checked = mode===2 ? true : mode===0 ? false : (c.n>=4&&c.days.length>0);
+  });
+}
+function applySchedule(){
+  if(!SCHED) return;
+  const useStaff=document.getElementById('sc_staff').checked;
+  const picked=[...document.querySelectorAll('.scChk')].filter(x=>x.checked)
+    .map(x=>SCHED.ag.clients[+x.dataset.i]);
+  // スタッフ登録（既存は氏名一致で上書きしない）
+  if(useStaff){
+    SCHED.st.filter(s=>s.days>=3).forEach(s=>{
+      if(DB.staff.some(x=>normName(x.name)===normName(s.name))) return;
+      DB.staff.push({id:uid(),name:s.name,start:s.start,end:s.end,base:'',skills:'',
+        br_from:'12:00',br_to:'13:30',br_dur:45,active:true});
+    });
+  }
+  // 利用者登録
+  let add=0,upd8=0;
+  picked.forEach(c=>{
+    const pref=DB.staff.find(x=>normName(x.name)===normName(c.topStaff)
+      ||normName(x.name).startsWith(normName(c.topStaff)));
+    const rec={addr:'',days:c.days.slice(),from:c.from,to:c.to,dur:c.dur,need:c.need,
+      times:c.times||1,gap:c.gap||120,skills:'',
+      pref:pref?pref.id:'',note:`実績${c.n}回（${c.first}〜${c.last}）${c.ns?' 管理表担当:'+c.ns:''}${c.zip?' 〒'+c.zip:''}`};
+    const ex=DB.clients.find(x=>x.name===c.name);
+    if(ex){ Object.assign(ex,rec); upd8++; } else { DB.clients.push({id:uid(),name:c.name,...rec}); add++; }
+  });
+  save(); MATRIX=null;
+  closeModal();
+  SCHED=null;
+  renderAll(); go('client');
+  alert(`利用者を ${add} 件追加・${upd8} 件更新しました。\n住所欄が空のままだと移動時間を考慮できないので、順次入力してください。`);
+}
+
+/* ==========================================================
+   利用者情報CSV（住所・連絡先）の取り込み
+========================================================== */
+/* 異体字・旧字の正規化（渡邉＝渡辺、廣＝広 などを同一視） */
+const VARIANT={'朗':'郎','邊':'辺','邉':'辺','廣':'広','勵':'励','會':'会','國':'国','齋':'斉','齊':'斉',
+  '澤':'沢','濱':'浜','嶋':'島','曻':'昇','壽':'寿','惠':'恵','ゑ':'え','ゐ':'い','ヱ':'エ','ヰ':'イ',
+  '﨑':'崎','榮':'栄','德':'徳','瀨':'瀬','籔':'薮','籐':'藤','眞':'真','橫':'横','溫':'温','ニ':'二'};
+function canon(s){
+  return String(s||'').replace(/[\s　]/g,'').replace(/[（(].*?[）)]/g,'')
+    .split('').map(c=>VARIANT[c]||c).join('');
+}
+const kata2hira=s=>String(s||'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+
+/* Shift_JIS / UTF-8 を自動判定して読む */
+async function readTextAuto(file){
+  const buf=await file.arrayBuffer();
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+  catch(e){ try{ return new TextDecoder('shift_jis').decode(buf); }
+            catch(e2){ return new TextDecoder('utf-8').decode(buf); } }
+}
+/* 2次元配列 → 列名つきレコード */
+function aoaToObjs(aoa){
+  let hr=-1;
+  for(let r=0;r<Math.min(aoa.length,10);r++){
+    const row=(aoa[r]||[]).map(x=>String(x||'').replace(/[\s　]/g,''));
+    if(row.some(x=>/^利用者名$|^氏名$|^患者名$/.test(x))&&row.some(x=>/住所/.test(x))){ hr=r; break; }
+  }
+  if(hr<0) return null;
+  const head=(aoa[hr]||[]).map(x=>String(x||'').replace(/[\s　]/g,''));
+  return aoa.slice(hr+1).filter(r=>r&&String(r[0]||'').trim())
+    .map(r=>{ const o={}; head.forEach((h,i)=>o[h]=String(r[i]==null?'':r[i]).trim()); return o; });
+}
+function col(o,...pats){
+  for(const p of pats){ const k=Object.keys(o).find(k=>new RegExp(p).test(k)); if(k&&o[k]&&o[k]!=='-') return o[k]; }
+  return '';
+}
+/* CSVの1名に対応する既存利用者を（複数あればすべて）返す。
+   スケジュール表では同じ人が「山田花子」「はなこ」のように別表記で登録されるため。 */
+const baseName=n=>String(n).split('／')[0];
+function matchExistingClients(name,kana){
+  const cn=canon(name);
+  const parts=String(kana||'').split(/[\s　]+/).filter(Boolean);
+  const given=kata2hira(parts.length>1?parts[parts.length-1]:'');
+  const sur=cn.slice(0,2);
+  const hits=new Map(); const why=[];
+  const add=(list,tag)=>{ if(!list.length) return; if(!why.includes(tag)) why.push(tag);
+    list.forEach(c=>hits.set(c.id,c)); };
+
+  add(DB.clients.filter(c=>canon(baseName(c.name))===cn),'氏名一致');
+  if(given.length>=2){
+    add(DB.clients.filter(c=>kata2hira(canon(baseName(c.name)))===given),'よみ一致（'+given+'）');
+    if(sur.length===2)
+      add(DB.clients.filter(c=>kata2hira(canon(baseName(c.name)))===kata2hira(sur)+given),'姓＋よみ一致');
+  }
+  if(!hits.size&&sur.length===2){
+    // 姓だけの一致は誤りやすいので、候補が1人に絞れ、かつ
+    // 「姓だけの登録」か「頭3文字が一致」する場合に限る（同姓の別人を混同しないため）
+    const cand=DB.clients.filter(c=>{
+      const b=canon(baseName(c.name));
+      if(!b.startsWith(sur)) return false;
+      return b.length<=2 || cn.length<=2 || b.slice(0,3)===cn.slice(0,3)
+             || cn.startsWith(b) || b.startsWith(cn);
+    });
+    const bases=[...new Set(cand.map(c=>baseName(c.name)))];
+    if(bases.length===1) add(cand,'姓一致');
+  }
+  // 「◯◯／n回目」も同じ人として一緒に拾う
+  const list=[...hits.values()];
+  const bases=new Set(list.map(c=>baseName(c.name)));
+  DB.clients.forEach(c=>{ if(bases.has(baseName(c.name))) hits.set(c.id,c); });
+  return {list:[...hits.values()],how:why.join('・')};
+}
+function matchExistingClient(name,kana){   // 後方互換
+  const r=matchExistingClients(name,kana);
+  return {c:r.list[0]||null,how:r.how};
+}
+let CSVP=null;
+document.getElementById('cliCsv').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  let aoa;
+  try{
+    if(/\.csv$/i.test(f.name)) aoa=parseCSV(await readTextAuto(f));
+    else{
+      if(typeof XLSX==='undefined'){ alert('Excelを読む部品が読み込めませんでした。CSVで保存し直してください。'); return; }
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+      aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+    }
+  }catch(err){ alert('ファイルを読めませんでした：'+err.message); return; }
+  const objs=aoaToObjs(aoa);
+  if(!objs||!objs.length){ alert('「利用者名」と「住所」の列が見つかりませんでした。'); return; }
+  const rows=objs.map(o=>{
+    const name=col(o,'利用者名','^氏名','患者名'), kana=col(o,'カナ','ｶﾅ','フリガナ');
+    const m=matchExistingClients(name,kana);
+    return {name,kana,addr:col(o,'住所'),tel:col(o,'電話番号','TEL','連絡先'),
+      hosp:col(o,'医療機関名','医療機関'),dr:col(o,'主治医'),
+      ins:col(o,'医療保険種類','保険'),to:col(o,'指示書期間\\(至','指示書期間.至'),
+      list:m.list,match:m.list[0]||null,how:m.how};
+  });
+  CSVP=rows;
+  const hit=rows.filter(r=>r.match).length, addr=rows.filter(r=>r.addr).length;
+  modal(`<h3>利用者情報の取り込み</h3>
+    <div class="metric">CSV <b>${rows.length}</b> 名</div>
+    <div class="metric">住所あり <b>${addr}</b> 名</div>
+    <div class="metric">既存の利用者と一致 <b>${hit}</b> 名</div>
+    <div class="note">一致した利用者に住所・連絡先を書き込みます。一致しなかった行は、チェックすれば新規の利用者として追加します
+      （曜日や時間帯は未設定なので、あとで入力してください）。</div>
+    <div class="tblwrap" style="max-height:46vh;overflow:auto"><table>
+      <thead><tr><th style="width:30px">取込</th><th>CSVの氏名</th><th>住所</th><th>突合先</th><th>電話</th><th>医療機関</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr>
+        <td><input type="checkbox" class="cvChk" data-i="${i}" style="width:auto" ${r.addr?'checked':''}></td>
+        <td>${esc(r.name)}<br><span class="muted">${esc(r.kana)}</span></td>
+        <td style="max-width:280px">${esc(r.addr)||'<span class="muted">なし</span>'}</td>
+        <td>${r.match?r.list.map(c=>`<span class="pill ok">${esc(c.name)}</span>`).join(' ')
+                +`<br><span class="muted">${esc(r.how)}</span>`
+              :'<span class="pill">新規として追加</span>'}</td>
+        <td class="muted">${esc(r.tel)}</td><td class="muted">${esc(r.hosp)}</td></tr>`).join('')}
+      </tbody></table></div>
+    <div class="foot"><button onclick="closeModal()">やめる</button>
+      <button class="primary" onclick="applyClientCSV()">この内容で取り込む</button></div>`);
+});
+function applyClientCSV(){
+  if(!CSVP) return;
+  let f=0,a=0;
+  [...document.querySelectorAll('.cvChk')].filter(x=>x.checked).forEach(x=>{
+    const r=CSVP[+x.dataset.i];
+    const note=[r.tel&&('TEL '+r.tel),r.hosp&&('医療機関 '+r.hosp),r.dr&&('主治医 '+r.dr),
+                r.to&&('指示書 '+r.to)].filter(Boolean).join(' / ');
+    if(r.match){ (r.list||[r.match]).forEach(c=>{
+        if(r.addr) c.addr=r.addr;
+        if(note&&!String(c.note||'').includes(note)) c.note=(c.note?c.note+' ／ ':'')+note;
+        f++; }); }
+    else { DB.clients.push({id:uid(),name:r.name.replace(/[\s　]/g,' ').trim(),addr:r.addr,days:[],
+      from:'09:00',to:'17:00',dur:60,need:1,times:1,gap:120,skills:'',pref:'',note}); a++; }
+  });
+  save(); MATRIX=null; CSVP=null; closeModal(); renderAll(); go('client');
+  const nAddr=DB.clients.filter(c=>c.addr).length;
+  document.getElementById('cliMsg').innerHTML=
+    `<div class="note">既存 ${f} 件を更新、${a} 件を新規追加しました。住所あり ${nAddr} / ${DB.clients.length} 件。
+     残りは「施設名から住所を補完」で埋まることがあります。</div>`;
+}
+/* 「◯◯／1回目」「◯◯／2回目」を本人「◯◯」の1件にまとめる */
+function mergeClientSeq(){
+  const seq=DB.clients.filter(c=>c.name.includes('／'));
+  if(!seq.length){ document.getElementById('cliMsg').innerHTML=
+    '<div class="note">「／1回目」のような利用者はありません。</div>'; return; }
+  const log=[]; const removed=[];
+  seq.forEach(s=>{
+    const bn=baseName(s.name);
+    let base=DB.clients.find(c=>c.name===bn);
+    if(!base){ s.name=bn; base=s; log.push(s.name+'（名前のみ変更）'); return; }   // 本人の行が無ければ改名
+    base.days=[...new Set([...(base.days||[]),...(s.days||[])])].sort();
+    const f=[base.from,s.from].filter(Boolean).sort(); if(f.length) base.from=f[0];
+    const t=[base.to,s.to].filter(Boolean).sort();     if(t.length) base.to=t[t.length-1];
+    base.dur=Math.max(+base.dur||0,+s.dur||0);
+    base.need=Math.max(+base.need||1,+s.need||1);
+    if(!base.addr&&s.addr) base.addr=s.addr;
+    if(!base.pref&&s.pref) base.pref=s.pref;
+    if(!base.skills&&s.skills) base.skills=s.skills;
+    removed.push(s.id); log.push(s.name+' → '+bn);
+  });
+  DB.clients=DB.clients.filter(c=>!removed.includes(c.id));
+  DB.rules.mergeSeq=true;
+  save(); MATRIX=null; renderAll();
+  document.getElementById('cliMsg').innerHTML=
+    `<div class="note"><b>${log.length} 件</b>を本人に統合しました。曜日はすべて合わせ、時間帯は最も早い開始〜最も遅い開始、
+     所要時間と人数は大きいほうを採用しています。<br>${esc(log.join(' ／ '))}</div>`;
+}
+/* ==========================================================
+   施設と入居者の紐付け
+========================================================== */
+const facName=id=>{ const f=DB.clients.find(c=>c.id===id); return f?f.name:''; };
+const facMembers=id=>DB.clients.filter(c=>c.fac===id);
+function facilities(){ return DB.clients.filter(c=>c.isFac); }
+
+function setFac(cid,v){
+  const c=DB.clients.find(x=>x.id===cid); if(!c) return;
+  if(v==='__fac'){ c.isFac=true; delete c.fac; }
+  else if(!v){ delete c.isFac; delete c.fac; }
+  else { delete c.isFac; c.fac=v;
+    const f=DB.clients.find(x=>x.id===v);
+    if(f&&f.addr&&!c.addr) c.addr=f.addr;          // 住所が空なら施設の住所を使う
+  }
+  save(); MATRIX=null; renderClient();
+}
+/* 住所に施設名が入っているものを自動で紐付ける */
+function linkFacilities(){
+  // 候補：住所に名前が含まれる利用者がいるもの
+  const cand=[];
+  DB.clients.forEach(f=>{
+    const key=canon(f.name); if(key.length<2) return;
+    const mem=DB.clients.filter(c=>c.id!==f.id&&canon(c.addr).includes(key));
+    if(mem.length) cand.push({f,mem});
+  });
+  let nf=0,nm=0; const log=[];
+  cand.forEach(({f,mem})=>{
+    if(!f.isFac){ f.isFac=true; nf++; }
+    delete f.fac;
+    mem.forEach(c=>{
+      if(c.isFac||c.fac===f.id) return;
+      c.fac=f.id; nm++;
+      if(!c.addr&&f.addr) c.addr=f.addr;
+    });
+    log.push(`${f.name}（${facMembers(f.id).length}名）`);
+  });
+  const na=tidyFacilityAddresses();
+  save(); MATRIX=null; renderClient();
+  const msg=document.getElementById('cliMsg');
+  if(msg) msg.innerHTML= nf||nm||na
+    ? `<div class="note">施設 <b>${nf}</b> 件、入居者 <b>${nm}</b> 名を紐付けました。
+       ${na?`住所を施設のものにそろえました（${na}件）。`:''}<br>${esc(log.join(' ／ '))}</div>`
+    : `<div class="note">住所から新たに紐付けできる施設はありませんでした。</div>`;
+}
+/* 施設と入居者の住所を、いちばん詳しいものにそろえる
+   （「◯◯ホーム２F」のような都道府県の無い住所を避けるため） */
+function tidyFacilityAddresses(){
+  let n=0;
+  facilities().forEach(f=>{
+    const group=[f,...facMembers(f.id)];
+    const best=group.map(c=>c.addr||'').filter(Boolean)
+      .sort((a,b)=>(/[都道府県]/.test(b)?1:0)-(/[都道府県]/.test(a)?1:0)||b.length-a.length)[0];
+    if(!best) return;
+    group.forEach(c=>{ if(c.addr!==best){ c.addr=best; n++; } });
+  });
+  return n;
+}
+/* 表示順：施設 → その入居者 → 個人 */
+function clientOrder(){
+  const out=[], used=new Set();
+  const byName=(a,b)=>(b.days.length?1:0)-(a.days.length?1:0)||a.name.localeCompare(b.name,'ja');
+  facilities().sort(byName).forEach(f=>{
+    out.push(f); used.add(f.id);
+    facMembers(f.id).sort(byName).forEach(c=>{ out.push(c); used.add(c.id); });
+  });
+  DB.clients.filter(c=>!used.has(c.id)).sort(byName).forEach(c=>out.push(c));
+  return out;
+}
+/* 施設名の利用者（グループホーム等）に、同名を含む住所を割り当てる */
+function fillFacilityAddr(){
+  const withAddr=DB.clients.filter(c=>c.addr);
+  let n=0; const log=[];
+  DB.clients.filter(c=>!c.addr).forEach(c=>{
+    const key=canon(c.name).replace(/／.*$/,'');
+    if(key.length<2) return;
+    const hit=withAddr.find(x=>canon(x.addr).includes(key));
+    if(hit){ c.addr=hit.addr; n++; log.push(c.name+' → '+hit.addr); }
+  });
+  save(); MATRIX=null; renderClient();
+  document.getElementById('cliMsg').innerHTML= n
+    ? `<div class="note"><b>${n} 件</b>の住所を施設名から補完しました。<br>${log.map(esc).join('<br>')}</div>`
+    : `<div class="note">施設名から補完できる住所はありませんでした。</div>`;
+}
+
+/* ==========================================================
+   設定
+========================================================== */
+const $=id=>document.getElementById(id);
+function renderConfig(){
+  const c=DB.cfg;
+  $('cf_mode').value=c.mode; $('cf_buffer').value=c.buffer; $('cf_factor').value=c.factor; $('cf_balance').value=c.balance;
+  $('cf_cont').value=c.cont; $('cf_wait').value=c.wait; $('cf_online').value=String(c.online); $('cf_speed').value=c.speed;
+  $('cf_spread').value=c.spread==null?1.5:c.spread;
+  const rows=Object.entries(DB.geo);
+  document.getElementById('geoTable').innerHTML=
+    `<thead><tr><th>住所</th><th style="width:170px">緯度・経度</th><th style="width:170px">精度</th><th style="width:70px"></th></tr></thead><tbody>`+
+    (rows.length?rows.map(([a,g])=>`<tr><td>${esc(a)}</td>
+      <td><input value="${g&&g.lat!=null?g.lat.toFixed(6)+', '+g.lon.toFixed(6):''}" placeholder="緯度, 経度"
+          style="width:170px;font-size:12px"
+          onchange="setGeoManual('${esc(a).replace(/'/g,"\\'")}',(this.value.split(',')[0]||''),(this.value.split(',')[1]||''))"></td>
+      <td>${(g&&g.lat!=null)
+             ? (g.manual?'<span class="pill ok">手入力</span>'
+                : (g.level>=2?`<span class="pill ng">${esc(GEO_LEVEL[g.level]||'広域')}</span>`
+                            :`<span class="pill ok">${esc(GEO_LEVEL[g.level]||'番地まで')}</span>`))
+             : `<span class="pill ng">失敗</span><br><span class="muted" style="font-size:11px">${esc((g&&g.fail)||'該当なし')}</span>`}
+        ${g&&g.q&&g.q!==a?`<br><span class="muted" style="font-size:11px">照合: ${esc(g.q)}</span>`:''}</td>
+      <td><button class="sm" onclick="delGeo('${esc(a).replace(/'/g,"\\'")}')">消去</button></td></tr>`).join('')
+     :`<tr><td colspan="4" class="muted">まだありません</td></tr>`)+`</tbody>`;
+}
+function saveConfig(){
+  DB.cfg={mode:$('cf_mode').value,buffer:+$('cf_buffer').value,factor:+$('cf_factor').value,balance:+$('cf_balance').value,
+    cont:+$('cf_cont').value,wait:+$('cf_wait').value,online:+$('cf_online').value,speed:+$('cf_speed').value,
+    spread:+$('cf_spread').value};
+  save(); MATRIX=null; alert('保存しました');
+}
+/* --- 取り込みルールの編集 --- */
+function renderRules(){
+  const R=DB.rules;
+  const mq=document.getElementById('rl_mseq'); if(mq) mq.checked=!!R.mergeSeq;
+  const at=document.getElementById('aliasTable'); if(!at) return;
+  const ae=Object.entries(R.alias);
+  at.innerHTML=`<thead><tr><th>この表記</th><th>→ この利用者</th><th style="width:60px"></th></tr></thead><tbody>`+
+    (ae.length?ae.map(([k,v])=>`<tr>
+      <td><input value="${esc(k)}" onchange="renameAlias('${esc(k).replace(/'/g,"\\'")}',this.value)"></td>
+      <td><input value="${esc(v)}" onchange="DB.rules.alias['${esc(k).replace(/'/g,"\\'")}']=this.value;save()"></td>
+      <td><button class="sm danger" onclick="delRule('alias','${esc(k).replace(/'/g,"\\'")}')">削除</button></td></tr>`).join('')
+     :`<tr><td colspan="3" class="muted">まだありません</td></tr>`)+`</tbody>`;
+  const et=document.getElementById('exclTable');
+  et.innerHTML=`<thead><tr><th>除外する項目</th><th style="width:60px"></th></tr></thead><tbody>`+
+    (R.exclude.length?R.exclude.map((k,i)=>`<tr>
+      <td><input value="${esc(k)}" onchange="DB.rules.exclude[${i}]=this.value;save()"></td>
+      <td><button class="sm danger" onclick="delRule('exclude','${esc(k).replace(/'/g,"\\'")}')">削除</button></td></tr>`).join('')
+     :`<tr><td colspan="2" class="muted">まだありません</td></tr>`)+`</tbody>`;
+}
+function addRule(kind){
+  if(kind==='alias'){ const k=prompt('セルに書かれている表記（例：さくら）'); if(!k)return;
+    const v=prompt('どの利用者として扱いますか（例：グループホームさくら）'); if(!v)return; DB.rules.alias[k.trim()]=v.trim(); }
+  else { const k=prompt('訪問として扱わない項目（例：会議）'); if(!k)return;
+    if(!DB.rules.exclude.includes(k.trim())) DB.rules.exclude.push(k.trim()); }
+  save(); renderRules();
+}
+function renameAlias(oldK,newK){
+  newK=String(newK).trim(); if(!newK||newK===oldK) return;
+  DB.rules.alias[newK]=DB.rules.alias[oldK]; delete DB.rules.alias[oldK]; save(); renderRules();
+}
+function delRule(kind,k){
+  if(kind==='alias') delete DB.rules.alias[k];
+  else DB.rules.exclude=DB.rules.exclude.filter(x=>x!==k);
+  save(); renderRules();
+}
+function delGeo(a){ delete DB.geo[a]; save(); MATRIX=null; renderConfig(); }
+function clearGeo(){ if(confirm('住所の座標キャッシュを全て消しますか？')){ DB.geo={}; save(); MATRIX=null; renderConfig(); } }
+
+/* ==========================================================
+   ジオコーディング & 移動時間行列
+========================================================== */
+let MATRIX=null;      // {keys:[addr], idx:{addr:i}, dur:[[min]]}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* --- 住所の正規化 ---
+   全角数字・全角英字を半角に、数字の区切りに使われた長音記号をハイフンに、
+   「丁目／番地／番／号」をハイフンに、漢数字の丁目を算用数字にそろえる。 */
+const KANJI_NUM={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+function kanji2num(s){
+  if(/^十$/.test(s)) return 10;
+  let m=s.match(/^([一二三四五六七八九])?十([一二三四五六七八九])?$/);
+  if(m) return (m[1]?KANJI_NUM[m[1]]:1)*10+(m[2]?KANJI_NUM[m[2]]:0);
+  if(s.length===1&&KANJI_NUM[s]!=null) return KANJI_NUM[s];
+  return null;
+}
+function normalizeAddr(a){
+  let s=String(a||'').trim();
+  s=s.replace(/[０-９Ａ-Ｚａ-ｚ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  s=s.replace(/[　\s]+/g,'');
+  s=s.replace(/([〇零一二三四五六七八九十]+)丁目/g,(w,k)=>{const n=kanji2num(k); return n==null?w:n+'丁目';});
+  s=s.replace(/(\d)[ー―−‐–—〜~ｰ](\d)/g,'$1-$2');
+  s=s.replace(/(\d)[ー―−‐–—〜~ｰ](?=[^\d]|$)/g,'$1');
+  s=s.replace(/丁目/g,'-').replace(/番地の/g,'-').replace(/番地/g,'-').replace(/番/g,'-').replace(/号/g,'');
+  s=s.replace(/-{2,}/g,'-').replace(/-+$/,'');
+  s=s.replace(/-(?=[^\d])/g,'');      // 数字が続かないハイフンは落とす（356-ソーシャル… → 356ソーシャル…）
+  return s;
+}
+/* 詳細 → 粗い の順に検索候補を作る */
+function addrVariants(a){
+  const n=normalizeAddr(a), out=[n];
+  const m=n.match(/^(.*?\d[\d-]*)(?=[^\d-])/);        // 末尾の建物名・施設名を落とす
+  if(m&&m[1]!==n) out.push(m[1]);
+  const t=n.match(/^([^0-9]+)/);                      // 町名まで（最初の数字の手前）
+  if(t) out.push(t[1]);
+  const town=n.match(/^([^0-9]*?[都道府県][^0-9]*?[市区町村])/); // 市区町村まで
+  if(town) out.push(town[1]);
+  const pref=n.match(/^(.*?[都道府県])/);
+  if(pref) out.push(pref[1]);
+  return [...new Set(out)].filter(x=>x&&x.length>=3);
+}
+const GEO_LEVEL=['番地まで','建物名を除いて','町名まで','市区町村まで','都道府県まで'];
+
+let GEO_ERR=null;          // 直近の失敗理由（診断用）
+async function geocodeOne(q){
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=jp&addressdetails=0&q='+encodeURIComponent(q);
+  let r;
+  try{ r=await fetch(url); }
+  catch(e){ throw new Error('通信できません（'+e.message+'）。ネットに繋がっていないか、ブラウザが外部への接続を止めています。'); }
+  if(!r.ok) throw new Error('サーバーがエラーを返しました（HTTP '+r.status+' '+r.statusText+'）');
+  const txt=await r.text();
+  let j; try{ j=JSON.parse(txt); }
+  catch(e){ throw new Error('応答が地図データではありませんでした：'+txt.slice(0,120)); }
+  if(!Array.isArray(j)) throw new Error('想定外の応答形式です：'+txt.slice(0,120));
+  return j[0] ? {lat:+j[0].lat,lon:+j[0].lon} : null;   // null＝見つからなかった（通信は成功）
+}
+async function geocode(addr,statusFn){
+  if(DB.geo[addr]!==undefined) return DB.geo[addr];
+  const vs=addrVariants(addr);
+  let got=null, lastErr=null;
+  for(let i=0;i<vs.length;i++){
+    if(statusFn&&i>0) statusFn(`住所を検索中（${GEO_LEVEL[i]||'広域'}）：${vs[i]}`);
+    try{ got=await geocodeOne(vs[i]); }
+    catch(e){ got=null; lastErr=e.message; GEO_ERR=e.message; }
+    await sleep(1100);                       // Nominatim 利用規約：1req/秒
+    if(got){ got.q=vs[i]; got.level=i; break; }
+  }
+  DB.geo[addr]= got || (lastErr?{fail:lastErr}:null);
+  save();
+  return got;
+}
+/* --- 接続の診断 --- */
+async function testGeo(){
+  const box=document.getElementById('geoTest');
+  box.innerHTML='<div class="muted">確認中…</div>';
+  const log=[];
+  const now=new Date().toLocaleTimeString('ja-JP');
+  log.push(`時刻：${now}`);
+  log.push(`ページの場所：${location.protocol}//${location.host||'（ローカルファイル）'}`);
+  log.push(`オンライン状態：${navigator.onLine?'接続あり':'オフライン'}`);
+  log.push(`設定「オンライン地図を使う」：${DB.cfg.online?'使う':'使わない ← これが原因です'}`);
+  const tests=[['東京都新宿区','市区町村だけの単純な住所'],
+               ['東京都新宿区西新宿2-8-1','番地までの住所']];
+  for(const [q,label] of tests){
+    try{
+      const t0=Date.now();
+      const g=await geocodeOne(q);
+      const ms=Date.now()-t0;
+      log.push(`${label}「${q}」→ ${g?`成功 ${g.lat.toFixed(4)}, ${g.lon.toFixed(4)}（${ms}ms）`:`通信は成功したが該当なし（${ms}ms）`}`);
+    }catch(e){ log.push(`${label}「${q}」→ 失敗：${e.message}`); }
+    await sleep(1100);
+  }
+  const fails=Object.entries(DB.geo).filter(([,g])=>!g||g.fail);
+  if(fails.length) log.push(`保存済みで未取得の住所：${fails.length}件（例：${fails.slice(0,3).map(([a])=>a).join('、')}）`);
+  const ok=log.some(l=>/→ 成功/.test(l));
+  box.innerHTML=`<div class="${ok?'note':'err'}" style="white-space:pre-wrap;font-size:12.5px">${esc(log.join('\n'))}</div>`
+   +(ok?'<div class="muted">通信は正常です。個別の住所が取れない場合は、その住所の書き方が地図データに無い可能性があります。下の表で緯度・経度を直接入れられます。</div>'
+       :'<div class="muted">通信ができていません。社内ネットワークやセキュリティソフトが外部接続を止めている場合は、設定の「オンライン地図を使う」を「使わない」にして概算で運用できます。</div>');
+}
+/* --- 緯度経度を手入力 --- */
+function setGeoManual(addr,lat,lon){
+  const la=parseFloat(lat), lo=parseFloat(lon);
+  if(isNaN(la)||isNaN(lo)){ delete DB.geo[addr]; }
+  else DB.geo[addr]={lat:la,lon:lo,level:0,q:'手入力',manual:true};
+  save(); MATRIX=null; renderConfig();
+}
+
+function haversine(a,b){
+  const R=6371,rad=x=>x*Math.PI/180;
+  const dLat=rad(b.lat-a.lat), dLon=rad(b.lon-a.lon);
+  const h=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fallbackMinutes(a,b){
+  if(!a||!b) return 15;                       // 座標不明時の既定値
+  const km=haversine(a,b)*1.3;                // 道路迂回率
+  return km/Math.max(3,DB.cfg.speed)*60;
+}
+const OSRM={driving:'https://router.project-osrm.org/table/v1/driving/',
+            bike:'https://routing.openstreetmap.de/routed-bike/table/v1/bike/',
+            foot:'https://routing.openstreetmap.de/routed-foot/table/v1/foot/'};
+
+async function buildMatrix(force,statusFn){
+  const st=statusFn||(()=>{});
+  const addrs=[...new Set([...DB.staff.map(s=>s.base),
+      ...DB.clients.map(c=>c.addr), ...extraOf(curDate()).map(c=>c.addr)].filter(a=>a&&a.trim()))];
+  if(MATRIX && !force && MATRIX.keys.length===addrs.length && addrs.every(a=>a in MATRIX.idx)) return MATRIX;
+
+  const need=addrs.filter(a=>DB.cfg.online&&(DB.geo[a]===undefined||(DB.geo[a]&&DB.geo[a].fail)));
+  for(let i=0;i<need.length;i++){
+    st(`住所を検索中 ${i+1}/${need.length}：${need[i]}`);
+    await geocode(need[i],m=>st(`${i+1}/${need.length} ${m}`));
+  }
+
+  const idx={}; addrs.forEach((a,i)=>idx[a]=i);
+  const n=addrs.length;
+  const dur=Array.from({length:n},()=>Array(n).fill(0));
+  const pts=addrs.map(a=>{const g=DB.geo[a]; return (g&&g.lat!=null)?g:null;});
+
+  let usedOnline=false, err=null;
+  if(DB.cfg.online && n>1 && n<=90 && pts.every(p=>p&&p.lat!=null)){
+    try{
+      st('移動時間を計算中…');
+      const coords=pts.map(p=>p.lon.toFixed(6)+','+p.lat.toFixed(6)).join(';');
+      const r=await fetch(OSRM[DB.cfg.mode]+coords+'?annotations=duration');
+      const j=await r.json();
+      if(j.code==='Ok'&&j.durations){
+        for(let i=0;i<n;i++)for(let k=0;k<n;k++){
+          const v=j.durations[i][k];
+          dur[i][k]= (v==null)?fallbackMinutes(pts[i],pts[k]):v/60;
+        }
+        usedOnline=true;
+      } else err='ルート計算サーバーが応答しませんでした';
+    }catch(e){ err='ルート計算に接続できませんでした（'+e.message+'）'; }
+  }
+  if(!usedOnline){
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++) dur[i][k]= i===k?0:fallbackMinutes(pts[i],pts[k]);
+  }
+  const f=DB.cfg.factor||1;
+  for(let i=0;i<n;i++)for(let k=0;k<n;k++) dur[i][k]= i===k?0:dur[i][k]*f;
+
+  MATRIX={keys:addrs,idx,dur,online:usedOnline,err,
+    missing:addrs.filter(a=>DB.cfg.online&&!(DB.geo[a]&&DB.geo[a].lat!=null)),
+    rough:addrs.filter(a=>DB.geo[a]&&DB.geo[a].lat!=null&&DB.geo[a].level>=2)};
+  return MATRIX;
+}
+async function refreshMatrix(force){
+  const st=document.getElementById('planStatus');
+  MATRIX=null;
+  await buildMatrix(force,m=>st.textContent=m);
+  st.textContent='';
+  renderConfig();
+  alert(MATRIX.online?'実際の道路データで移動時間を取得しました。':'概算（直線距離ベース）で移動時間を設定しました。');
+}
+function travel(a,b){
+  if(!a||!b) return DB.cfg.buffer;
+  if(a===b) return 0;
+  const M=MATRIX; if(!M) return 15;
+  const i=M.idx[a], k=M.idx[b];
+  if(i==null||k==null) return 15;
+  return M.dur[i][k];
+}
+
+/* ==========================================================
+   最適化エンジン
+========================================================== */
+function buildVisits(date){
+  const dw=dowOf(date), out=[];
+  const expand=(c,extra)=>{
+    const n=Math.max(1,Math.min(6,+c.times||1));
+    const gap=c.gap==null?120:Math.max(0,+c.gap);
+    const from=s2m(c.from)??480, to=s2m(c.to)??1080, dur=+c.dur||30;
+    for(let k=0;k<n;k++){
+      out.push({id:c.id,cid:c.id,key:c.id+'#'+k,seq:k+1,times:n,gap:Math.max(gap,dur),
+        name:c.name+(extra?'（臨時）':'')+(n>1?'（'+(k+1)+'回目）':''),
+        addr:c.addr,from,to,dur,need:Math.max(1,+c.need||1),
+        skills:splitSkills(c.skills),pref:c.pref||'',note:extra?'臨時':(c.note||''),extra:!!extra});
+    }
+  };
+  DB.clients.forEach(c=>{ if((c.days||[]).includes(dw)) expand(c,false); });
+  extraOf(date).forEach(c=>expand(c,true));
+  return out;
+}
+function buildStaff(date){
+  const o=ovrOf(date);
+  return DB.staff.filter(s=>s.active!==false).map(s=>{
+    const v=o[s.id]||{}, w=shiftOf(date,s.id);
+    return {id:s.id,name:s.name,base:s.base,off:!!w.off,note:v.note||'',
+      start:s2m(w.start)??540, end:s2m(w.end)??1050,
+      skills:splitSkills(s.skills), only:(s.only||[]).slice(), changed:!!(v.start||v.end||v.off),
+      br:{from:s2m(s.br_from),to:s2m(s.br_to),dur:+s.br_dur||0,opt:s.br_opt!==false}};
+  }).filter(s=>!s.off);
+}
+function hasSkills(st,need){ return need.every(k=>st.skills.some(x=>x===k)); }
+/* 担当限定に引っかからないか */
+function canServe(st,v){
+  if(!st.only||!st.only.length) return true;
+  return st.only.includes(v.cid||v.id);
+}
+const eligible=(st,v)=>hasSkills(st,v.skills)&&canServe(st,v);
+
+/* ルート = {staff, stops:[{visit,start,end}]} */
+function routeTravel(r){
+  let t=0, prev=r.staff.base;
+  r.stops.forEach(s=>{ t+=travel(prev,s.visit.addr); prev=s.visit.addr; });
+  if(r.stops.length) t+=travel(prev,r.staff.base);
+  return t;
+}
+function routeLoad(r){ return r.stops.reduce((a,s)=>a+s.visit.dur,0)+routeTravel(r); }
+
+/* 指定ルートに visit を pos に入れたときの [開始可能最早, 最遅] と 追加移動時間 */
+function evalInsert(r,v,pos,cfg){
+  const B=cfg.buffer;
+  const prevStop=pos>0?r.stops[pos-1]:null;
+  const nextStop=pos<r.stops.length?r.stops[pos]:null;
+  const prevLoc=prevStop?prevStop.visit.addr:r.staff.base;
+  const prevEnd=prevStop?prevStop.end:r.staff.start;
+  const tIn=travel(prevLoc,v.addr);
+  let lo=Math.max(v.from,prevEnd+tIn+(prevStop?B:0));
+  let hi=Math.min(v.to,r.staff.end-v.dur);
+  let add=tIn;
+  if(nextStop){
+    const tOut=travel(v.addr,nextStop.visit.addr);
+    hi=Math.min(hi,nextStop.start-B-tOut-v.dur);
+    add+=tOut-travel(prevLoc,nextStop.visit.addr);
+  }else{
+    add+=travel(v.addr,r.staff.base)-travel(prevLoc,r.staff.base);
+  }
+  if(lo>hi) return null;
+  // 「任意」でない休憩は必ず確保する
+  if(needsBreak(r.staff)){
+    r.stops.splice(pos,0,{visit:v,start:lo,end:lo+v.dur});
+    const ok=breakGapOK(r);
+    r.stops.splice(pos,1);
+    if(!ok) return null;
+  }
+  return {lo,hi,add,pos};
+}
+function needsBreak(st){
+  const b=st.br;
+  return !!(b&&!b.opt&&b.dur>0&&b.from!=null&&b.to!=null&&b.to-b.from>=b.dur);
+}
+/* 休憩帯のなかに、移動も含めて空いている連続時間が休憩分だけ残っているか */
+function breakGapOK(r){
+  const b=r.staff.br;
+  if(!needsBreak(r.staff)) return true;
+  const busy=[]; let prev=r.staff.base;
+  r.stops.forEach(s=>{
+    const t=travel(prev,s.visit.addr);
+    busy.push([s.start-t,s.end]);              // 直前の移動も塞がっているとみなす
+    prev=s.visit.addr;
+  });
+  const segs=busy.filter(x=>x[1]>b.from&&x[0]<b.to).sort((x,y)=>x[0]-y[0]);
+  let cur=b.from;
+  for(const [s,e] of segs){
+    if(s-cur>=b.dur) return true;
+    cur=Math.max(cur,e);
+    if(cur>=b.to) return false;
+  }
+  return b.to-cur>=b.dur;
+}
+function insertAt(r,v,pos,start){
+  r.stops.splice(pos,0,{visit:v,start,end:start+v.dur});
+}
+function loadStats(routes){
+  const L=routes.map(routeLoad);
+  const mean=L.reduce((a,b)=>a+b,0)/(L.length||1);
+  return Math.sqrt(L.reduce((a,b)=>a+(b-mean)**2,0)/(L.length||1));
+}
+
+/* 同じ利用者の別回と時間が近すぎない最早の時刻を返す */
+function firstFree(lo,hi,sib,gap){
+  if(!sib.length||gap<=0) return lo;
+  let t=lo;
+  for(let i=0;i<sib.length+2;i++){
+    let moved=false;
+    for(const s of sib) if(t>s-gap&&t<s+gap){ t=s+gap; moved=true; }
+    if(!moved) break;
+  }
+  return t<=hi?t:null;
+}
+/* 1件の訪問を配置する。成功なら true、無理なら {reason} を返す */
+function placeVisit(routes,v,cfg){
+  // 同じ利用者の、すでに決まっている別回の開始時刻
+  const sib=[];
+  if(v.times>1) routes.forEach(r=>r.stops.forEach(s=>{
+    if(s.visit.cid===v.cid&&s.visit.key!==v.key&&!sib.includes(s.start)) sib.push(s.start); }));
+  const cands=[]; let gapBlocked=0;
+  routes.forEach(r=>{
+    if(!eligible(r.staff,v)) return;
+    if(r.stops.some(s=>s.visit.key===v.key)) return;
+    for(let p=0;p<=r.stops.length;p++){
+      const e=evalInsert(r,v,p,cfg);
+      if(!e) continue;
+      const lo2=firstFree(e.lo,e.hi,sib,v.gap);
+      if(lo2==null){ gapBlocked++; continue; }
+      e.lo=lo2;
+      const load=routeLoad(r);
+      let cost=e.add + cfg.wait*Math.max(0,e.lo-(p>0?r.stops[p-1].end:v.from)) + cfg.balance*load/60
+               + (cfg.spread||0)*10*r.stops.length;   // 手すきのスタッフを優先する
+      if(v.pref&&v.pref===r.staff.id) cost-=cfg.cont*3;
+      const h=(DB.hist[v.cid||v.key]||{})[r.staff.id]||0;
+      cost-=cfg.cont*Math.min(3,h);
+      cands.push({r,...e,cost});
+    }
+  });
+  cands.sort((a,b)=>a.cost-b.cost);
+  // need人ぶん、時間帯が重なる候補を選ぶ
+  const chosen=[]; let lo=-Infinity, hi=Infinity;
+  for(const c of cands){
+    if(chosen.some(x=>x.r===c.r)) continue;
+    let nlo=Math.max(lo,c.lo); const nhi=Math.min(hi,c.hi);
+    if(nlo>nhi) continue;
+    nlo=firstFree(nlo,nhi,sib,v.gap);
+    if(nlo==null) continue;
+    chosen.push(c); lo=nlo; hi=nhi;
+    if(chosen.length===v.need) break;
+  }
+  if(chosen.length<v.need){
+    if(gapBlocked&&!cands.length)
+      return {reason:'同じ日の'+v.times+'回の訪問を'+v.gap+'分以上あけて入れられませんでした'};
+    return {reason:reasonFor(v,routes,cfg,cands.length)};
+  }
+  chosen.forEach(c=>{ insertAt(c.r,v,c.pos,lo); c.r.stops.sort((a,b)=>a.start-b.start); });
+  return true;
+}
+function solve(visits,staff,cfg,order,fixed){
+  const routes=staff.map(s=>({staff:s,stops:[]}));
+  const unassigned=[];
+  const done=new Set();
+  (fixed||[]).forEach(f=>{
+    const v=visits.find(x=>x.key===f.key); if(!v) return;
+    const rs=f.staffIds.map(id=>routes.find(x=>x.staff.id===id)).filter(Boolean);
+    if(!rs.length) return;
+    rs.forEach(r=>r.stops.push({visit:v,start:f.start,end:f.start+v.dur,pinned:true}));
+    done.add(f.key);
+  });
+  routes.forEach(r=>r.stops.sort((a,b)=>a.start-b.start));
+  order.map(i=>visits[i]).forEach(v=>{
+    if(done.has(v.key)) return;
+    const r=placeVisit(routes,v,cfg);
+    if(r!==true) unassigned.push({v,reason:r.reason});
+  });
+  return {routes,unassigned};
+}
+/* 未割当を、移動時間だけを見て入れ直す救済パス */
+function repair(sol,cfg){
+  if(!sol.unassigned.length) return sol;
+  const c2=Object.assign({},cfg,{balance:0,wait:0});
+  const rest=[];
+  sol.unassigned.forEach(u=>{
+    const r=placeVisit(sol.routes,u.v,c2);
+    if(r!==true) rest.push({v:u.v,reason:r.reason});
+  });
+  sol.unassigned=rest;
+  return sol;
+}
+function reasonFor(v,routes,cfg,nCand){
+  const able=routes.filter(r=>canServe(r.staff,v));
+  if(!able.length) return 'この利用者を担当できる設定のスタッフが勤務していません（担当限定）';
+  const skilled=able.filter(r=>hasSkills(r.staff,v.skills));
+  if(!skilled.length) return '必要スキル「'+v.skills.join('・')+'」を持つ勤務者がいません';
+  if(!nCand){
+    const inWindow=skilled.filter(r=>r.staff.start<=v.to&&r.staff.end>=v.from+v.dur);
+    if(!inWindow.length) return '希望時間帯に勤務しているスタッフがいません';
+    return '希望時間帯に空きのあるスタッフがいません';
+  }
+  if(v.need>1) return v.need+'名同時に空いている時間帯が作れませんでした';
+  if(v.times>1) return '同じ日の'+v.times+'回の訪問を'+v.gap+'分以上あけて入れられませんでした';
+  return '他の訪問と時間が重なり入りません';
+}
+function totalCost(sol,cfg){
+  const tv=sol.routes.reduce((a,r)=>a+routeTravel(r),0);
+  // 未割当ゼロを最優先（辞書式）→ 次に移動時間＋負荷のばらつき
+  const idle=sol.routes.filter(r=>!r.stops.length).length;
+  return sol.unassigned.length*1e6 + tv + cfg.balance*loadStats(sol.routes) + (cfg.spread||0)*25*idle;
+}
+
+/* 局所改善：1名訪問を別ルートへ移す */
+function improve(sol,visits,staff,cfg,rounds){
+  let best=sol, bestC=totalCost(sol,cfg);
+  for(let it=0;it<rounds;it++){
+    const rs=best.routes;
+    const movable=[];
+    rs.forEach((r,ri)=>r.stops.forEach((s,si)=>{ if(s.visit.need===1&&!s.pinned) movable.push([ri,si]); }));
+    if(!movable.length) break;
+    let improved=false;
+    for(const [ri,si] of movable){
+      const clone=cloneSol(best);
+      const v=clone.routes[ri].stops[si].visit;
+      clone.routes[ri].stops.splice(si,1);
+      // 再挿入（元ルート含め全候補）
+      let bc=null;
+      const sib=[];
+      if(v.times>1) clone.routes.forEach(r=>r.stops.forEach(s=>{
+        if(s.visit.cid===v.cid&&s.visit.key!==v.key&&!sib.includes(s.start)) sib.push(s.start); }));
+      clone.routes.forEach(r=>{
+        if(!eligible(r.staff,v))return;
+        for(let p=0;p<=r.stops.length;p++){
+          const e=evalInsert(r,v,p,cfg); if(!e)continue;
+          const lo2=firstFree(e.lo,e.hi,sib,v.gap); if(lo2==null)continue;
+          e.lo=lo2;
+          let cost=e.add+cfg.balance*routeLoad(r)/60+(cfg.spread||0)*10*r.stops.length;
+          if(v.pref===r.staff.id) cost-=cfg.cont*3;
+          if(!bc||cost<bc.cost) bc={r,...e,cost};
+        }
+      });
+      if(!bc) continue;
+      insertAt(bc.r,v,bc.pos,bc.lo);
+      bc.r.stops.sort((a,b)=>a.start-b.start);
+      const c=totalCost(clone,cfg);
+      if(c<bestC-0.01){ best=clone; bestC=c; improved=true; break; }
+    }
+    if(!improved) break;
+  }
+  return best;
+}
+function cloneSol(s){
+  return {routes:s.routes.map(r=>({staff:r.staff,
+            stops:r.stops.map(x=>({visit:x.visit,start:x.start,end:x.end,pinned:x.pinned,manual:x.manual}))})),
+          unassigned:s.unassigned.slice()};
+}
+function shuffle(a,rnd){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function mulberry(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0;
+  let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function optimize(visits,staff,cfg,iter,fixed){
+  // 基本順：時間枠が狭い順→最早開始順
+  const base=visits.map((v,i)=>i).sort((a,b)=>{
+    const A=visits[a],B=visits[b];
+    const wa=(A.to-A.from), wb=(B.to-B.from);
+    if(B.need!==A.need) return B.need-A.need;
+    if(wa!==wb) return wa-wb;
+    return A.from-B.from;
+  });
+  let best=null,bestC=Infinity;
+  for(let k=0;k<iter;k++){
+    const ord= k===0?base.slice():shuffle(base.slice(),mulberry(k*7919+13));
+    let sol=repair(solve(visits,staff,cfg,ord,fixed),cfg);
+    sol=repair(improve(sol,visits,staff,cfg,40),cfg);
+    const c=totalCost(sol,cfg);
+    if(c<bestC){ bestC=c; best=sol; }
+  }
+  return best;
+}
+
+/* ==========================================================
+   実行 & 表示
+========================================================== */
+let LAST=null;
+async function runOptimize(){
+  const st=document.getElementById('planStatus'), msg=document.getElementById('planMsg');
+  msg.innerHTML='';
+  const date=curDate();
+  const visits=buildVisits(date), staff=buildStaff(date);
+  if(!staff.length){ msg.innerHTML='<div class="err">この日に勤務するスタッフがいません。</div>'; return; }
+  if(!visits.length){ msg.innerHTML='<div class="err">この日の訪問予定がありません（利用者の曜日設定を確認してください）。</div>'; return; }
+
+  st.textContent='準備中…';
+  await buildMatrix(false,m=>st.textContent=m);
+  st.textContent='配置を計算中…';
+  await sleep(20);
+
+  const iter=Math.max(1,Math.min(2000,+document.getElementById('iterN').value||200));
+  // 固定した配置は動かさない
+  const fixed=Object.entries(pinsOf(date))
+    .filter(([k])=>visits.some(v=>v.key===k))
+    .map(([k,f])=>({key:k,staffIds:f.staffIds.filter(id=>staff.some(s=>s.id===id)),start:f.start}))
+    .filter(f=>f.staffIds.length);
+  const sol=optimize(visits,staff,DB.cfg,iter,fixed);
+  LAST={sol,date,visits,staff};
+  st.textContent='';
+
+  const warn=[];
+  if(!MATRIX.online) warn.push('移動時間は概算（直線距離÷平均速度）です。'+(MATRIX.err?MATRIX.err:''));
+  if(MATRIX.missing&&MATRIX.missing.length)
+    {
+      const why=[...new Set(MATRIX.missing.map(a=>(DB.geo[a]&&DB.geo[a].fail)||'地図データに該当なし'))];
+      warn.push('住所が特定できませんでした（'+MATRIX.missing.length+'件）。理由：'+why.join(' / ')
+        +'<br>設定タブの「地図の接続を確認」で詳しく調べられます。<br>'+MATRIX.missing.join('／'));
+    }
+  if(MATRIX.rough&&MATRIX.rough.length)
+    warn.push('番地まで特定できず、おおよその位置で計算した住所があります：'
+      +MATRIX.rough.map(a=>a+'（'+(GEO_LEVEL[DB.geo[a].level]||'広域')+'）').join(' / '));
+  const changed=staff.filter(s=>s.changed);
+  if(changed.length) warn.push('本日変更あり：'+changed.map(s=>s.name).join('、'));
+  msg.innerHTML=warn.map(w=>`<div class="note">${w}</div>`).join('');
+
+  renderResult();
+}
+
+function renderResult(){
+  if(!LAST) return;
+  const {sol,date}=LAST;
+  const tv=sol.routes.reduce((a,r)=>a+routeTravel(r),0);
+  const nv=sol.routes.reduce((a,r)=>a+r.stops.length,0);
+  const loads=sol.routes.map(routeLoad);
+  document.getElementById('planMetrics').innerHTML=
+    `<span class="metric">訪問割当 <b>${nv}</b> 件</span>
+     <span class="metric">総移動時間 <b>${Math.round(tv)}</b> 分</span>
+     <span class="metric">1人あたり移動 <b>${Math.round(tv/(sol.routes.length||1))}</b> 分</span>
+     <span class="metric">稼働 最大/最小 <b>${Math.round(Math.max(...loads,0))}</b> / <b>${Math.round(Math.min(...loads,0))}</b> 分</span>
+     <span class="metric">未割当 <b style="color:${sol.unassigned.length?'#c0392b':'#1e7e34'}">${sol.unassigned.length}</b> 件</span>`;
+
+  document.getElementById('tlDate').textContent=date+'（'+DOW[dowOf(date)]+'）';
+  const np=Object.keys(pinsOf(date)).length;
+  const pi=document.getElementById('pinInfo');
+  if(pi) pi.innerHTML= np? `📌 固定中 <b>${np}</b> 件 <button class="sm" onclick="clearPins()">固定を解除</button>` : '';
+  document.getElementById('tlCard').style.display='';
+  document.getElementById('listCard').style.display='';
+  renderTimeline(sol);
+  renderPlanTable(sol);
+
+  // 手直しで無理が出ていないか
+  const iss=planIssues(sol);
+  const isc=document.getElementById('issueCard');
+  if(iss.length){ isc.style.display='';
+    document.getElementById('issueList').innerHTML='<ul style="margin:0;padding-left:20px">'
+      +iss.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>';
+  } else isc.style.display='none';
+
+  // 訪問が1件も割り当たらなかったスタッフ
+  const idle=sol.routes.filter(r=>!r.stops.length);
+  const ic=document.getElementById('idleCard');
+  if(idle.length){
+    ic.style.display='';
+    document.getElementById('idleList').innerHTML=
+      `<table><thead><tr><th>スタッフ</th><th>勤務時間</th><th>理由</th></tr></thead><tbody>`
+      +idle.map(r=>`<tr><td>${esc(r.staff.name)}</td>
+        <td class="muted">${m2s(r.staff.start)}〜${m2s(r.staff.end)}</td>
+        <td>${esc(idleReason(r,LAST.visits))}</td></tr>`).join('')+`</tbody></table>`;
+  } else ic.style.display='none';
+
+  const uc=document.getElementById('unassignedCard');
+  if(sol.unassigned.length){
+    uc.style.display='';
+    document.getElementById('unassigned').innerHTML=`<table><thead><tr><th>訪問</th><th>希望時間</th><th>所要</th><th>人数</th><th>理由</th><th class="noprint"></th></tr></thead><tbody>`
+      +sol.unassigned.map(u=>`<tr><td>${esc(u.v.name)}</td><td>${m2s(u.v.from)}〜${m2s(u.v.to)}</td>
+        <td>${u.v.dur}分</td><td>${u.v.need}名</td><td style="color:#c0392b">${esc(u.reason)}</td>
+        <td class="noprint"><button class="sm" onclick="assignUnassigned('${u.v.key}')">手動で割り当てる</button></td></tr>`).join('')+`</tbody></table>`;
+  } else uc.style.display='none';
+}
+
+/* ==========================================================
+   配置の手直し
+========================================================== */
+let PINS={};   // {date:{key:{staffIds,start}}}
+const pinsOf=d=>(PINS[d]=PINS[d]||{});
+function stopsOf(key){
+  const out=[];
+  LAST.sol.routes.forEach(r=>r.stops.forEach(s=>{ if(s.visit.key===key) out.push({r,s}); }));
+  return out;
+}
+/* 手直しの結果に無理がないか調べる */
+function planIssues(sol){
+  const out=[];
+  sol.routes.forEach(r=>{
+    let prev=r.staff.base, pe=r.staff.start;
+    r.stops.forEach(s=>{
+      const v=s.visit, t=travel(prev,v.addr);
+      if(s.start<r.staff.start-0.01||s.end>r.staff.end+0.01)
+        out.push(`${r.staff.name}：${v.name} が勤務時間（${m2s(r.staff.start)}〜${m2s(r.staff.end)}）の外です`);
+      else if(s.start<v.from-0.01||s.start>v.to+0.01)
+        out.push(`${v.name}：希望時間帯（${m2s(v.from)}〜${m2s(v.to)}）の外に置かれています`);
+      else if(s.start+0.01<pe+t)
+        out.push(`${r.staff.name}：${v.name} まで移動 ${Math.round(t)}分が足りません（前の訪問が ${m2s(pe)} 終了）`);
+      if(!hasSkills(r.staff,v.skills))
+        out.push(`${r.staff.name}：${v.name} に必要な「${v.skills.join('・')}」を持っていません`);
+      if(!canServe(r.staff,v))
+        out.push(`${r.staff.name}：担当限定の設定により ${v.name} は担当できません`);
+      prev=v.addr; pe=s.end;
+    });
+  });
+  // 同時人数
+  const by={};
+  sol.routes.forEach(r=>r.stops.forEach(s=>(by[s.visit.key]=by[s.visit.key]||[]).push(s)));
+  Object.entries(by).forEach(([k,list])=>{
+    const v=list[0].visit;
+    if(list.length!==v.need) out.push(`${v.name}：${v.need}名必要ですが ${list.length}名です`);
+    if(new Set(list.map(x=>x.start)).size>1) out.push(`${v.name}：担当者どうしの開始時刻がそろっていません`);
+  });
+  return [...new Set(out)];
+}
+function editStop(key){
+  const v=(LAST.visits||[]).find(x=>x.key===key); if(!v) return;
+  const cur=stopsOf(key);
+  const start=cur.length?cur[0].s.start:v.from;
+  const pin=!!pinsOf(LAST.date)[key];
+  modal(`<h3>${esc(v.name)}</h3>
+    <div class="metric">希望時間帯 ${m2s(v.from)}〜${m2s(v.to)}</div>
+    <div class="metric">所要 ${v.dur}分</div>
+    <div class="metric">同時人数 ${v.need}名</div>
+    ${v.addr?`<div class="muted" style="margin:6px 0">${esc(v.addr)}</div>`:''}
+    <div class="row" style="margin-top:10px"><label class="f" style="margin:0">開始時刻</label>
+      <input type="time" id="es_t" value="${m2s(start)}">
+      <button class="sm" onclick="nudgeBar('es_t',-30)">−30</button>
+      <button class="sm" onclick="nudgeBar('es_t',30)">＋30</button></div>
+    <label class="f">担当（${v.need}名選んでください）</label>
+    <div class="tblwrap" style="max-height:38vh;overflow:auto"><table>
+      <thead><tr><th style="width:30px"></th><th>スタッフ</th><th>勤務</th><th>この日の件数</th></tr></thead><tbody>
+      ${LAST.sol.routes.map(r=>{
+        const on=cur.some(x=>x.r===r);
+        const ng=!hasSkills(r.staff,v.skills)||!canServe(r.staff,v);
+        return `<tr><td><input type="checkbox" class="esChk" data-id="${r.staff.id}" style="width:auto" ${on?'checked':''}></td>
+          <td>${esc(r.staff.name)}${ng?' <span class="pill ng">条件外</span>':''}</td>
+          <td class="muted">${m2s(r.staff.start)}〜${m2s(r.staff.end)}</td>
+          <td class="muted">${r.stops.length}件</td></tr>`;}).join('')}
+    </tbody></table></div>
+    <div class="row" style="margin-top:10px"><label style="font-size:12.5px">
+      <input type="checkbox" id="es_pin" style="width:auto" ${pin?'checked':''}> この配置を固定する（自動配置をやり直しても動かさない）</label></div>
+    <div class="foot"><button onclick="closeModal()">閉じる</button>
+      <button class="danger" onclick="unassignStop('${key}')">未割当にする</button>
+      <button class="primary" onclick="applyStopEdit('${key}')">保存</button></div>`);
+}
+function applyStopEdit(key){
+  const v=LAST.visits.find(x=>x.key===key); if(!v) return;
+  const t=s2m(document.getElementById('es_t').value);
+  const ids=[...document.querySelectorAll('.esChk')].filter(x=>x.checked).map(x=>x.dataset.id);
+  if(t==null){ alert('開始時刻を入力してください。'); return; }
+  if(!ids.length){ alert('担当を1人以上選んでください。'); return; }
+  placeManually(key,ids,t);
+  if(document.getElementById('es_pin').checked) pinsOf(LAST.date)[key]={staffIds:ids,start:t};
+  else delete pinsOf(LAST.date)[key];
+  closeModal(); renderResult();
+}
+function unassignStop(key){
+  placeManually(key,[],0);
+  delete pinsOf(LAST.date)[key];
+  const v=LAST.visits.find(x=>x.key===key);
+  if(v&&!LAST.sol.unassigned.some(u=>u.v.key===key))
+    LAST.sol.unassigned.push({v,reason:'手動で未割当にしました'});
+  closeModal(); renderResult();
+}
+function placeManually(key,staffIds,start){
+  const v=LAST.visits.find(x=>x.key===key); if(!v) return;
+  LAST.sol.routes.forEach(r=>{ r.stops=r.stops.filter(s=>s.visit.key!==key); });
+  LAST.sol.unassigned=LAST.sol.unassigned.filter(u=>u.v.key!==key);
+  staffIds.forEach(id=>{
+    const r=LAST.sol.routes.find(x=>x.staff.id===id); if(!r) return;
+    r.stops.push({visit:v,start,end:start+v.dur,manual:true,pinned:true});
+    r.stops.sort((a,b)=>a.start-b.start);
+  });
+  LAST.edited=true;
+}
+function assignUnassigned(key){ editStop(key); }
+function clearPins(){ PINS[LAST.date]={}; renderResult(); }
+function idleReason(r,visits){
+  const st=r.staff;
+  if(st.only&&st.only.length){
+    const names=st.only.map(id=>(DB.clients.find(c=>c.id===id)||{}).name).filter(Boolean).join('・');
+    const t=visits.filter(v=>st.only.includes(v.cid));
+    return t.length ? `担当限定（${names}）の訪問は他のスタッフが担当しました`
+                    : `担当限定（${names}）の訪問がこの日にありません`;
+  }
+  const skill=visits.filter(v=>hasSkills(st,v.skills));
+  if(!skill.length) return '資格・対応可の条件に合う訪問がありません';
+  const fit=skill.filter(v=>v.to>=st.start&&v.from+v.dur<=st.end);
+  if(!fit.length) return `勤務時間（${m2s(st.start)}〜${m2s(st.end)}）に収まる訪問がありません`;
+  return '訪問件数がスタッフ数に対して少ないため空きになりました';
+}
+function renderTimeline(sol){
+  const all=[...sol.routes.flatMap(r=>[r.staff.start,r.staff.end]),
+             ...sol.routes.flatMap(r=>r.stops.flatMap(s=>[s.start,s.end]))];
+  let t0=Math.floor(Math.min(...all,540)/60)*60, t1=Math.ceil(Math.max(...all,1080)/60)*60;
+  if(t1-t0<240) t1=t0+240;
+  const W=Math.max(900,(t1-t0)*1.6), px=m=>(m-t0)/(t1-t0)*100;
+  let head='<div class="tl-head"><div class="tl-name">スタッフ</div><div class="tl-track" style="height:22px">';
+  for(let t=t0;t<=t1;t+=60) head+=`<div class="tl-tick" style="left:${px(t)}%">${Math.floor(t/60)}時</div>`;
+  head+='</div></div>';
+
+  const rows=sol.routes.map(r=>{
+    let blocks=`<div class="blk avail" style="left:${px(r.staff.start)}%;width:${px(r.staff.end)-px(r.staff.start)}%;top:4px;height:36px"></div>`;
+    let prev=r.staff.base, prevT=r.staff.start;
+    r.stops.forEach(s=>{
+      const tt=travel(prev,s.visit.addr);
+      const ms=Math.max(prevT,s.start-tt);
+      if(tt>0.5&&s.start-ms>0.5)
+        blocks+=`<div class="blk move" style="left:${px(ms)}%;width:${px(s.start)-px(ms)}%" title="移動 ${Math.round(tt)}分"></div>`;
+      blocks+=`<div class="blk work${s.pinned?' pinned':''}${s.manual?' manual':''}"
+        onclick="editStop('${s.visit.key}')" style="left:${px(s.start)}%;width:${Math.max(1.2,px(s.end)-px(s.start))}%;cursor:pointer"
+        title="${esc(s.visit.name)}\n${m2s(s.start)}〜${m2s(s.end)}（${s.visit.dur}分）\n${esc(s.visit.addr)}\nクリックで担当・時刻を変更">${
+        s.pinned?'📌':''}${esc(s.visit.name)}</div>`;
+      prev=s.visit.addr; prevT=s.end;
+    });
+    const load=Math.round(routeLoad(r)), mv=Math.round(routeTravel(r));
+    return `<div class="tl-row"><div class="tl-name"><b>${esc(r.staff.name)}</b>
+      <span class="muted">${m2s(r.staff.start)}〜${m2s(r.staff.end)}<br>${r.stops.length}件 / 移動${mv}分</span>
+      ${r.staff.changed?'<span class="chip">変更</span>':''}</div>
+      <div class="tl-track" style="background-size:${100/((t1-t0)/60)}% 100%">${blocks}</div></div>`;
+  }).join('');
+  document.getElementById('timeline').innerHTML=`<div class="tl-inner" style="width:${W}px">${head}${rows}</div>`;
+}
+
+function renderPlanTable(sol){
+  const rows=[];
+  sol.routes.forEach(r=>r.stops.forEach(s=>rows.push({t:s.start,staff:r.staff.name,v:s.visit,s})));
+  rows.sort((a,b)=>a.t-b.t||a.staff.localeCompare(b.staff));
+  document.getElementById('planTable').innerHTML=
+    `<thead><tr><th>開始</th><th>終了</th><th>担当</th><th>利用者</th><th>住所</th><th>所要</th><th>人数</th><th>備考</th><th class="noprint" style="width:56px"></th></tr></thead><tbody>`
+    +rows.map(x=>`<tr>${x.s.pinned?'<td>📌 '+m2s(x.s.start)+'</td>':'<td>'+m2s(x.s.start)+'</td>'}<td>${m2s(x.s.end)}</td><td>${esc(x.staff)}</td>
+      <td>${esc(x.v.name)}</td><td class="muted">${esc(x.v.addr)}</td><td>${x.v.dur}分</td>
+      <td>${x.v.need>1?'<span class="chip">'+x.v.need+'名</span>':''}</td><td class="muted">${esc(x.v.note||'')}</td>
+      <td class="noprint"><button class="sm" onclick="editStop('${x.v.key}')">変更</button></td></tr>`).join('')
+    +`</tbody>`;
+}
+
+function confirmPlan(){
+  if(!LAST) return;
+  DB.hist=DB.hist||{};
+  LAST.sol.routes.forEach(r=>r.stops.forEach(s=>{
+    const k=s.visit.cid||s.visit.key; DB.hist[k]=DB.hist[k]||{};
+    DB.hist[k][r.staff.id]=(DB.hist[k][r.staff.id]||0)+1;
+  }));
+  // 古い実績が効きすぎないよう上限を設ける
+  Object.values(DB.hist).forEach(m=>Object.keys(m).forEach(k=>m[k]=Math.min(m[k],10)));
+  save();
+  alert('担当実績に反映しました。');
+}
+function exportCSV(){
+  if(!LAST) return;
+  const rows=[['日付','開始','終了','担当','利用者','住所','所要(分)','必要人数','備考']];
+  LAST.sol.routes.forEach(r=>r.stops.forEach(s=>rows.push([LAST.date,m2s(s.start),m2s(s.end),r.staff.name,
+    s.visit.name,s.visit.addr,s.visit.dur,s.visit.need,s.visit.note||''])));
+  LAST.sol.unassigned.forEach(u=>rows.push([LAST.date,'','','【未割当】',u.v.name,u.v.addr,u.v.dur,u.v.need,u.reason]));
+  const csv='﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  dl(new Blob([csv],{type:'text/csv'}),'配置_'+LAST.date+'.csv');
+}
+function exportJSON(){ dl(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}),
+  (DB.app&&DB.app.name?DB.app.name:'MEGURU')+'_データ_'+todayStr()+'.json'); }
+/* クリップボード経由の受け渡し（iPadで扱いやすい） */
+function bkMsg(t){ const e=document.getElementById('backupMsg'); if(e){ e.textContent=t; setTimeout(()=>e.textContent='',4000); } }
+function copyBackup(){
+  const t=JSON.stringify(DB);
+  const done=()=>bkMsg('コピーしました（'+Math.round(t.length/1024)+'KB）。相手の端末で「貼り付けて読み込む」を押してください');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,fb); else fb();
+  function fb(){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+    ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done(); }
+}
+async function pasteBackup(){
+  let t='';
+  try{ if(navigator.clipboard&&navigator.clipboard.readText) t=await navigator.clipboard.readText(); }catch(e){}
+  if(!t){
+    const m=modal(`<h3>データを貼り付ける</h3>
+      <div class="muted">別の端末で「コピーする」を押した内容を、下の枠に貼り付けてください。</div>
+      <textarea id="bkTA" style="width:100%;height:180px;margin-top:8px;font-size:12px"></textarea>
+      <div class="foot"><button onclick="closeModal()">やめる</button>
+        <button class="primary" onclick="loadBackupText(document.getElementById('bkTA').value)">読み込む</button></div>`);
+    return;
+  }
+  loadBackupText(t);
+}
+function loadBackupText(t){
+  try{
+    const o=JSON.parse(t);
+    if(!o||!Array.isArray(o.staff)) throw 0;
+    if(!confirm('今のデータを、読み込む内容で置き換えます。よろしいですか？')) return;
+    o.cfg=Object.assign({},DEF_CFG,o.cfg||{});
+    o.rules=Object.assign({},DEF_RULES,o.rules||{});
+    o.app=Object.assign({},DEF_APP,o.app||{});
+    DB=normalize(o); save(); MATRIX=null; closeModal(); renderAll();
+    bkMsg('読み込みました（利用者'+DB.clients.length+'件・スタッフ'+DB.staff.length+'名）');
+  }catch(e){ alert('データとして読み取れませんでした。コピーし直してみてください。'); }
+}
+function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
+function hookImport(id){
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener('change',e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>loadBackupText(r.result);
+    r.readAsText(f);
+  });
+}
+hookImport('importFile'); hookImport('importFile2');
+
+/* ==========================================================
+   サンプル
+========================================================== */
+function loadSample(){
+  if(!confirm('サンプルデータで上書きします。よろしいですか？'))return;
+  const S=(n,st,en,base,sk)=>({id:uid(),name:n,start:st,end:en,base,skills:sk,br_from:'12:00',br_to:'13:30',br_dur:45,active:true});
+  DB.staff=[
+    S('佐藤 看護師','08:45','17:30','東京都新宿区西新宿2-8-1','看護師,点滴,吸引'),
+    S('鈴木 看護師','09:00','17:00','東京都新宿区西新宿2-8-1','看護師,点滴'),
+    S('高橋 准看','09:30','16:30','東京都新宿区西新宿2-8-1','准看護師'),
+    S('田中 PT','10:00','18:00','東京都新宿区西新宿2-8-1','理学療法士,リハビリ'),
+  ];
+  const C=(n,ad,days,f,t,d,need,sk)=>({id:uid(),name:n,addr:ad,days,from:f,to:t,dur:d,need,skills:sk,pref:'',note:''});
+  const wk=[1,2,3,4,5];
+  DB.clients=[
+    C('青木様','東京都渋谷区代々木2-1-1',wk,'09:00','10:00',45,1,'看護師'),
+    C('井上様','東京都中野区中野4-1-1',wk,'09:30','11:00',60,1,''),
+    C('上田様','東京都杉並区阿佐谷南1-15-1',[1,3,5],'10:00','12:00',60,2,'看護師'),
+    C('遠藤様','東京都豊島区南池袋1-28-1',wk,'11:00','13:00',45,1,'点滴'),
+    C('大川様','東京都文京区本郷7-3-1',[2,4],'13:00','15:00',90,1,'リハビリ'),
+    C('笹本様','東京都板橋区板橋2-66-1',wk,'13:30','15:30',45,1,''),
+    C('堀内様','東京都練馬区豊玉北6-12-1',wk,'14:00','16:00',60,1,'吸引'),
+    C('工藤様','東京都北区王子1-15-22',[1,3,5],'15:00','16:30',45,1,''),
+    C('小林様','東京都台東区東上野4-5-6',wk,'10:30','12:30',60,1,'看護師'),
+    C('斉藤様','東京都墨田区吾妻橋1-23-20',[2,4],'09:00','11:00',45,1,''),
+  ];
+  DB.ovr={}; DB.extra={}; save(); MATRIX=null; renderAll();
+  alert('サンプルを投入しました。「配置を作る」→「自動配置を作成」を押してください。\n初回は住所検索に少し時間がかかります。');
+}
+
+/* ==========================================================
+   初期化
+========================================================== */
+function renderAll(){ applyAppName(); renderStaff(); renderClient(); renderOvr(); renderExtra();
+  renderConfig(); renderRules(); renderCal();
+  const d=curDate(); document.getElementById('dowLabel').textContent=DOW[dowOf(d)]+'曜日'; }
+document.getElementById('theDate').value=todayStr();
+calAnchor=todayStr();
+document.getElementById('theDate').addEventListener('change',()=>{ MATRIX=null; calAnchor=curDate(); renderAll(); });
+renderTabs(); renderAll();
+</script>
+</body>
+</html>
