@@ -117,10 +117,13 @@ td input:hover,td select:hover{border-color:var(--line);background:#fff}
 #clientTable tr.memrow td:nth-child(1){padding-left:2px}
 #clientTable tr.memrow td:nth-child(1) input{font-weight:400}
 .memmark{color:#9fb3ad;font-size:12px;margin-right:2px}
-#staffTable td:nth-child(6) input{min-width:190px}
-#staffTable td:nth-child(7) input{min-width:150px}
-#staffTable td:nth-child(11){min-width:250px}
-#staffTable td:nth-child(11) input{min-width:238px}
+#staffTable td:nth-child(7) input{min-width:190px}                    /* 出発地 */
+#staffTable td:nth-child(8) input{min-width:150px}                    /* 資格 */
+#staffTable th:nth-child(10),#staffTable td:nth-child(10){width:196px;min-width:196px}   /* 休憩帯 */
+#staffTable th:nth-child(11),#staffTable td:nth-child(11){width:66px;min-width:66px;padding-left:4px;padding-right:4px}
+#staffTable td:nth-child(11) input{min-width:52px;width:100%}         /* 休憩分 */
+#staffTable td:nth-child(12){min-width:360px}                         /* 備考・条件 */
+#staffTable td:nth-child(12) input{min-width:348px}
 table td input[title]{text-overflow:ellipsis}
 .muted{color:var(--muted);font-size:12px}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
