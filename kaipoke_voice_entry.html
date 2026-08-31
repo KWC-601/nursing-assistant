@@ -2693,14 +2693,17 @@ async function analyzeText() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
-        messages: [{role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
+        messages: [
+          {role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`},
+          {role: 'assistant', content: '{'}
+        ]
       })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!res.ok || data.error) throw new Error((data.error?.message)||`HTTPエラー ${res.status}`);
     addLog('✅ SOAP生成完了！', true);
-    parseAndFill(data.content.map(c=>c.text||'').join(''), text);
+    parseAndFill('{' + data.content.map(c=>c.text||'').join(''), text);
   } catch(e) {
     const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
     showAnalysisError('【Claude API】 ' + msg);
@@ -2872,13 +2875,16 @@ async function reanalyzeTranscript() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
-        messages: [{role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}]
+        messages: [
+          {role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`},
+          {role: 'assistant', content: '{'}
+        ]
       })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!res.ok || data.error) throw new Error((data.error?.message) || `HTTPエラー ${res.status}`);
-    parseAndFill(data.content.map(c => c.text || '').join(''), text);
+    parseAndFill('{' + data.content.map(c => c.text || '').join(''), text);
     statusEl.textContent = '✅ 再解析完了！バイタル・SOAPを更新しました';
     statusEl.style.color = 'var(--green)';
     // 文字起こしパネルを開いたまま転記一覧へスクロール
