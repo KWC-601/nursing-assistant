@@ -2003,16 +2003,17 @@ async function analyzeAudio() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
-        messages: [{role: 'user', content:
-          `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`
-        }]
+        messages: [
+          {role: 'user', content: `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`},
+          {role: 'assistant', content: '{'}
+        ]
       })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
     addLog('✅ SOAP生成完了！', true);
-    parseAndFill(data.content.map(c => c.text||'').join(''), transcript);
+    parseAndFill('{' + data.content.map(c => c.text||'').join(''), transcript);
   } catch(e) {
     clearTimeout && clearTimeout();
     const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
