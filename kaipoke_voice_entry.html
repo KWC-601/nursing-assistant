@@ -1818,6 +1818,7 @@ function addLog(msg, done=false) {
 // ===== 解析プロンプト =====
 function buildSystemPrompt() {
   return `あなたは訪問看護の記録を支援するアシスタントです。
+【絶対ルール】必ずJSON形式のみを返すこと。説明文・挨拶・断り文言・コードブロックは一切禁止。全ての値は必ずダブルクォート（"）で囲んだ文字列で返すこと。不明・該当なしの場合は空文字列 "" を使用し、null・undefined・unquotedの値は使用禁止。
 SOAP記録のO欄（客観的情報）を作成する際は以下のルールを必ず守ってください。
 
 【O欄の記述ルール】
@@ -2910,7 +2911,28 @@ function extractJson(text) {
   if (start !== -1 && end !== -1 && end > start) {
     s = s.slice(start, end + 1);
   }
-  return JSON.parse(s);
+  try {
+    return JSON.parse(s);
+  } catch(e) {
+    // フォールバック：正規表現で各フィールドを個別に抽出
+    const g = (key) => { const m = s.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"')); return m ? m[1] : ''; };
+    const tMatch = g('transcript');
+    const sS = g('S'), sO = g('O'), sA = g('A'), sP = g('P');
+    const temp = g('temperature'), bpH = g('bp_high'), bpL = g('bp_low'), pulse = g('pulse'), spo2 = g('spo2');
+    if (tMatch || sS || sO || sA) {
+      return {
+        transcript: tMatch || text.slice(0, 800),
+        vitals: { temperature: temp, bp_high: bpH, bp_low: bpL, pulse: pulse, spo2: spo2,
+                  respiration: g('respiration'), weight: g('weight'), blood_sugar: g('blood_sugar'), irregular_pulse: g('irregular_pulse') },
+        soap: { S: sS, O: sO, A: sA, P: sP },
+        mentioned_names: [],
+        care_items: [],
+        observations: { urine_count: g('urine_count'), defecation_count: g('defecation_count'),
+                        fluid_intake: g('fluid_intake'), meal_amount: g('meal_amount') }
+      };
+    }
+    throw e;
+  }
 }
 
 function parseAndFill(jsonText, fallback='') {
