@@ -2005,8 +2005,7 @@ async function analyzeAudio() {
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
         messages: [
-          {role: 'user', content: `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`},
-          {role: 'assistant', content: '{'}
+          {role: 'user', content: `以下は訪問看護の音声記録を文字起こしした内容です。利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n【文字起こし】\n${transcript}\n\n${buildPrompt()}`}
         ]
       })
     });
@@ -2014,7 +2013,7 @@ async function analyzeAudio() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error?.message || `HTTPエラー ${res.status}`);
     addLog('✅ SOAP生成完了！', true);
-    parseAndFill('{' + data.content.map(c => c.text||'').join(''), transcript);
+    parseAndFill(data.content.map(c => c.text||'').join(''), transcript);
   } catch(e) {
     clearTimeout && clearTimeout();
     const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
@@ -2696,8 +2695,7 @@ async function analyzeText() {
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
         messages: [
-          {role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`},
-          {role: 'assistant', content: '{'}
+          {role: 'user', content: `以下の訪問看護メモを解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}
         ]
       })
     });
@@ -2705,7 +2703,7 @@ async function analyzeText() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error((data.error?.message)||`HTTPエラー ${res.status}`);
     addLog('✅ SOAP生成完了！', true);
-    parseAndFill('{' + data.content.map(c=>c.text||'').join(''), text);
+    parseAndFill(data.content.map(c=>c.text||'').join(''), text);
   } catch(e) {
     const msg = e.name === 'AbortError' ? '⏱ タイムアウト（90秒）' : e.message;
     showAnalysisError('【Claude API】 ' + msg);
@@ -2878,15 +2876,14 @@ async function reanalyzeTranscript() {
         model: 'claude-sonnet-4-6', max_tokens: 3000,
         system: buildSystemPrompt(),
         messages: [
-          {role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`},
-          {role: 'assistant', content: '{'}
+          {role: 'user', content: `以下の訪問看護メモ（編集済み）を解析してください。\nこのメモには利用者氏名・訪問日・担当者名・事業所名は含まれていません。\n\n${text}\n\n${buildPrompt()}`}
         ]
       })
     });
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!res.ok || data.error) throw new Error((data.error?.message) || `HTTPエラー ${res.status}`);
-    parseAndFill('{' + data.content.map(c => c.text || '').join(''), text);
+    parseAndFill(data.content.map(c => c.text || '').join(''), text);
     statusEl.textContent = '✅ 再解析完了！バイタル・SOAPを更新しました';
     statusEl.style.color = 'var(--green)';
     // 文字起こしパネルを開いたまま転記一覧へスクロール
@@ -2919,19 +2916,17 @@ function extractJson(text) {
     const tMatch = g('transcript');
     const sS = g('S'), sO = g('O'), sA = g('A'), sP = g('P');
     const temp = g('temperature'), bpH = g('bp_high'), bpL = g('bp_low'), pulse = g('pulse'), spo2 = g('spo2');
-    if (tMatch || sS || sO || sA) {
-      return {
-        transcript: tMatch || text.slice(0, 800),
-        vitals: { temperature: temp, bp_high: bpH, bp_low: bpL, pulse: pulse, spo2: spo2,
-                  respiration: g('respiration'), weight: g('weight'), blood_sugar: g('blood_sugar'), irregular_pulse: g('irregular_pulse') },
-        soap: { S: sS, O: sO, A: sA, P: sP },
-        mentioned_names: [],
-        care_items: [],
-        observations: { urine_count: g('urine_count'), defecation_count: g('defecation_count'),
-                        fluid_intake: g('fluid_intake'), meal_amount: g('meal_amount') }
-      };
-    }
-    throw e;
+    // フィールドの有無にかかわらず常に結果を返す（エラー画面を表示しない）
+    return {
+      transcript: tMatch || text.slice(0, 800),
+      vitals: { temperature: temp, bp_high: bpH, bp_low: bpL, pulse: pulse, spo2: spo2,
+                respiration: g('respiration'), weight: g('weight'), blood_sugar: g('blood_sugar'), irregular_pulse: g('irregular_pulse') },
+      soap: { S: sS, O: sO, A: sA, P: sP },
+      mentioned_names: [],
+      care_items: [],
+      observations: { urine_count: g('urine_count'), defecation_count: g('defecation_count'),
+                      fluid_intake: g('fluid_intake'), meal_amount: g('meal_amount') }
+    };
   }
 }
 
