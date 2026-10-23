@@ -418,15 +418,15 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
     <div class="card-body">
       <div class="alert alert-danger">
         <span>🚨</span>
-        <span><strong>誤った利用者への入力は重大な医療事故につながります。</strong><br>以下3項目を確認し、すべてにチェックしてから先へ進んでください。</span>
+        <span><strong>誤った利用者への入力は重大な医療事故につながります。</strong><br>以下3項目を正しく入力・確認してから次へ進んでください。</span>
       </div>
 
       <!-- ① 記録者選択 -->
-      <div class="confirm-card" style="background:#eff6ff;border-color:#bfdbfe">
-        <div class="c-icon">👤</div>
+      <div class="confirm-card" style="background:#dbeafe;border:2px solid #3b82f6">
+        <div class="c-icon" style="font-size:22px">👤</div>
         <div style="flex:1">
-          <div class="c-label" style="color:#1e40af">① 記録者 — 今日訪問したのは誰ですか？（複数可・最大3名）</div>
-          <div id="confirm_login" class="c-value" style="color:#94a3b8;font-size:14px">↓ 下のボタンから選択してください（複数可・最大3名）</div>
+          <div class="c-label" style="color:#1e40af;font-size:14px;font-weight:800">① 記録者（今日訪問したのは誰ですか？）</div>
+          <div id="confirm_login" class="c-value" style="color:#94a3b8;font-size:15px;font-weight:700">↓ 下のボタンから選択してください（複数可・最大3名）</div>
           <div class="c-sub" style="color:#3b82f6">クロノス一宮 訪問看護</div>
         </div>
         <div class="c-check" id="check_login">✅</div>
@@ -434,12 +434,11 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
       <div class="staff-grid" id="staffGrid"></div>
 
       <!-- ② 利用者名 -->
-      <div class="confirm-card" style="background:#f0fdf4;border-color:#bbf7d0">
-        <div class="c-icon">🏥</div>
+      <div class="confirm-card" style="background:#dcfce7;border:2px solid #16a34a">
+        <div class="c-icon" style="font-size:22px">🏥</div>
         <div style="flex:1">
-          <div class="c-label" style="color:#166534">② 入力対象の利用者</div>
-          <div id="confirm_user" class="c-value" style="color:#94a3b8;font-size:14px">← 下のフォームに入力してください</div>
-          <div class="c-sub" style="color:#16a34a">カイポケで選択した利用者と一致していますか？</div>
+          <div class="c-label" style="color:#166534;font-size:14px;font-weight:800">② 利用者名（カイポケで選択した利用者と一致していますか？）</div>
+          <div id="confirm_user" class="c-value" style="color:#94a3b8;font-size:15px;font-weight:700">← 下のフォームに入力してください</div>
         </div>
         <div class="c-check" id="check_user">✅</div>
       </div>
@@ -448,12 +447,11 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
       </div>
 
       <!-- ③ 訪問日時 -->
-      <div class="confirm-card" style="background:#faf5ff;border-color:#e9d5ff">
-        <div class="c-icon">📅</div>
+      <div class="confirm-card" style="background:#ede9fe;border:2px solid #7c3aed">
+        <div class="c-icon" style="font-size:22px">📅</div>
         <div style="flex:1">
-          <div class="c-label" style="color:#6b21a8">③ 訪問日時</div>
-          <div id="confirm_date" class="c-value" style="color:#94a3b8;font-size:14px">← 下のフォームに入力してください</div>
-          <div class="c-sub" style="color:#7c3aed">音声録音・手書きメモの日付と一致していますか？</div>
+          <div class="c-label" style="color:#6b21a8;font-size:14px;font-weight:800">③ 訪問日時（音声録音・手書きメモの日付と一致していますか？）</div>
+          <div id="confirm_date" class="c-value" style="color:#94a3b8;font-size:15px;font-weight:700">← 下のフォームに入力してください</div>
         </div>
         <div class="c-check" id="check_date">✅</div>
       </div>
@@ -479,28 +477,22 @@ textarea.overwrite{border-color:var(--orange)!important;background:var(--orange-
         <input type="hidden" id="input_date">
       </div>
 
-      <!-- チェックリスト -->
-      <div style="border:2px solid var(--red);border-radius:10px;padding:16px;margin-bottom:20px">
-        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:12px">✋ 以下3項目すべてにチェックを入れてください</div>
-        <div class="check-list">
-          <label class="check-item" id="lbl_chk1">
-            <input type="checkbox" id="chk1" onchange="onCheck(this,'lbl_chk1');checkProceedReady()">
-            <span>選択した<strong>記録者名</strong>は自分本人である</span>
-          </label>
-          <label class="check-item" id="lbl_chk2">
-            <input type="checkbox" id="chk2" onchange="onCheck(this,'lbl_chk2');checkProceedReady()">
-            <span>入力した<strong>利用者名</strong>はカイポケで選択した利用者と完全に一致している</span>
-          </label>
-          <label class="check-item" id="lbl_chk3">
-            <input type="checkbox" id="chk3" onchange="onCheck(this,'lbl_chk3');checkProceedReady()">
-            <span>入力した<strong>訪問日時</strong>は今回の音声録音・手書きメモと一致している</span>
-          </label>
+      <!-- 最終確認サマリー -->
+      <div id="confirmSummary" style="border:2.5px solid var(--red);border-radius:12px;padding:14px 18px;margin:20px 0 14px;background:#fff">
+        <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">🔍 最終確認 — 以下の内容で間違いありませんか？</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center">
+          <div style="font-size:13px;font-weight:700;color:#1e40af">👤 記録者</div>
+          <div id="sum_staff" style="font-size:18px;font-weight:800;color:#94a3b8">未選択</div>
+          <div style="font-size:13px;font-weight:700;color:#166534">🏥 利用者</div>
+          <div id="sum_user" style="font-size:18px;font-weight:800;color:#94a3b8">未入力</div>
+          <div style="font-size:13px;font-weight:700;color:#6b21a8">📅 訪問日時</div>
+          <div id="sum_date" style="font-size:18px;font-weight:800;color:#94a3b8">未入力</div>
         </div>
       </div>
 
       <button id="proceedBtn" class="btn btn-full btn-lg" onclick="tryGoStep(1)" disabled
         style="background:#94a3b8;color:#fff;cursor:not-allowed;opacity:.5;font-size:15px;padding:16px">
-        🔒 3項目すべて確認してから次へ進めます
+        🔒 記録者・利用者・訪問日時を入力してください
       </button>
 
       <!-- 報告書作成ボタン -->
@@ -1631,26 +1623,48 @@ function updateConfirm() {
 
 function onCheck(cb, lblId) { document.getElementById(lblId).classList.toggle('checked', cb.checked); }
 
+// 日付＋開始時刻＋終了時刻がすべて入力されているか
+function isDateTimeComplete() {
+  return ['input_date_cal','input_time_h_start','input_time_m_start','input_time_h_end','input_time_m_end']
+    .every(id => (document.getElementById(id)?.value || '').trim() !== '');
+}
+
 function checkProceedReady() {
-  const ok = ['chk1','chk2','chk3'].every(id => document.getElementById(id).checked)
-    && document.getElementById('input_user').value.trim()
-    && document.getElementById('input_date').value.trim()
+  const ok = document.getElementById('input_user').value.trim()
+    && isDateTimeComplete()
     && selectedStaffs.length > 0;
   const btn = document.getElementById('proceedBtn');
   btn.disabled = !ok;
   btn.style.opacity = ok ? '1' : '0.5';
   btn.style.cursor = ok ? 'pointer' : 'not-allowed';
   btn.style.background = ok ? 'var(--accent)' : '#94a3b8';
-  btn.textContent = ok ? '✅ 確認完了 — 音声入力へ進む →' : '🔒 3項目すべて確認してから次へ進めます';
+  btn.textContent = ok ? '✅ 内容を確認して次へ →' : '🔒 記録者・利用者・訪問日時を入力してください';
 
+  // 最終確認サマリーを更新
+  const setSum = (id, val, empty, color) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.textContent = val || empty;
+    el.style.color = val ? color : '#94a3b8';
+  };
+  setSum('sum_staff', (selectedStaffs || []).join('、'), '未選択', '#1e3a8a');
+  setSum('sum_user', document.getElementById('input_user').value.trim() ? document.getElementById('input_user').value.trim() + ' 様' : '', '未入力', '#14532d');
+  const dateVal = document.getElementById('input_date').value.trim();
+  const sumDate = document.getElementById('sum_date');
+  if (sumDate) {
+    if (isDateTimeComplete()) {
+      sumDate.textContent = dateVal; sumDate.style.color = '#581c87';
+    } else {
+      sumDate.textContent = dateVal ? dateVal + '（時刻が未入力）' : '未入力';
+      sumDate.style.color = dateVal ? '#dc2626' : '#94a3b8';
+    }
+  }
 }
 
 // ===== ステップ移動 =====
 function tryGoStep(n) {
   if (n > 0) {
-    const ok = ['chk1','chk2','chk3'].every(id => document.getElementById(id).checked)
-      && document.getElementById('input_user').value.trim()
-      && document.getElementById('input_date').value.trim()
+    const ok = document.getElementById('input_user').value.trim()
+      && isDateTimeComplete()
       && selectedStaffs.length > 0;
     if (!ok) { setStatus('❌ 対象者確認を完了してください','red'); goStep(0); return; }
   }
